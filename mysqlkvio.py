@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from sets import Set
 import MySQLdb
 
 from kvio import KVIO
@@ -70,6 +71,56 @@ class MySQLKVIO(KVIO):
       self.conn.rollback()
       self.txncursor.close()
       self.txncursor = None
+  
+  def getIndexStore(self, ch, resolution):
+    """Generate the name of the index store"""
+    return '{}_res{}_index'.format(ch.getChannelName(), resolution)
+
+  def getCubeIndex(self, ch, resolution, listofidxs):
+    
+    cursor = self.conn.cursor()
+    
+    sql = "SELECT zindex FROM {} WHERE zindex in (%s)".format(self.getIndexStore(ch, resolution)) 
+
+    # creats a %s for each list element
+    in_p=', '.join(map(lambda x: '%s', listofidxs))
+    # replace the single %s with the in_p string
+    sql = sql % in_p
+
+    try:
+      rc = cursor.execute(sql, listofidxs)
+      ids_existing = cursor.fetchall()
+      if ids_existing:
+        ids_to_fetch = Set(listofidxs).difference( Set(i[0] for i in ids_existing))
+        return list(ids_to_fetch)
+      else:
+        return listofidxs
+    except MySQLdb.Error, e:
+      logger.error ( "Error selecting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
+      raise
+    finally:
+      # close the local cursor if not in a transaction and commit right away
+      cursor.close()
+
+  
+  def putCubeIndex(self, ch, resolution, listofidxs):
+    
+    cursor = self.conn.cursor()
+    
+    sql = "INSERT INTO {} VALUE (%s)".format(self.getIndexStore(ch, resolution))
+    
+    try:
+      cursor.executemany(sql, listofidxs)
+    except MySQLdb.Error, e:
+      logger.error ( "Error inserting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
+      raise
+    finally:
+      # close the local cursor if not in a transaction and commit right away
+      cursor.close()
+    
+    # commit if not in a txn
+    self.conn.commit()
+
 
   def getChannelId(self, ch):
     """Retrieve the channel id for the oldchannel database"""
@@ -211,15 +262,12 @@ class MySQLKVIO(KVIO):
       # close the local cursor if not in a transaction
       if self.txncursor is None:
         cursor.close()
- 
+
+
   def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
     """Store multiple cubes into the database"""
 
-    # if in a TxN us the transaction cursor.  Otherwise create one.
-    if self.txncursor is None:
-      cursor = self.conn.cursor()
-    else:
-      cursor = self.txncursor
+    cursor = self.conn.cursor()
     
     sql = "REPLACE INTO {} (zindex,cube) VALUES (%s,%s)".format(ch.getTable(resolution))
     #sql = "INSERT INTO {} (zindex,cube) VALUES (%s,%s)".format(ch.getTable(resolution))
@@ -231,8 +279,10 @@ class MySQLKVIO(KVIO):
       raise
     finally:
       # close the local cursor if not in a transaction and commit right away
-      if self.txncursor is None:
-        cursor.close()
+      cursor.close()
+    
+    # commit if not in a txn
+    self.conn.commit()
   
   def putCube ( self, ch, zidx, resolution, cubestr, update=False, timestamp=None ):
     """Store a cube from the annotation database"""

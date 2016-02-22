@@ -57,9 +57,9 @@ class RedisKVIO(KVIO):
     index_store = self.getIndexStore(ch, resolution)
     index_store_temp = index_store+'_temp'
     self.client.sadd(index_store_temp, *listofidxs)
-    idstofetch = self.client.sdiff( index_store_temp, index_store )
+    ids_to_fetch = self.client.sdiff( index_store_temp, index_store )
     self.client.delete(index_store_temp)
-    return idstofetch
+    return list(ids_to_fetch)
   
   def putCubeIndex(self, ch, resolution, listofidxs):
     """Add the listofidxs to the store"""

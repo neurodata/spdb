@@ -44,6 +44,16 @@ class KVIO:
     pass
   
   @abstractmethod
+  def getCubeIndex(self, ch, resolution, listofidxs):
+    """Return the index list of inserted cubes"""
+    return NotImplemented
+  
+  @abstractmethod
+  def putCubeIndex(self, ch, resolution, listofidxs):
+    """Insert the index list of fetched cubes"""
+    return NotImplemented
+
+  @abstractmethod
   def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
     """Retrieve a single cube from the database"""
     return NotImplemented
