@@ -76,19 +76,22 @@ class MySQLKVIO(KVIO):
     """Generate the name of the index store"""
     return '{}_res{}_index'.format(ch.getChannelName(), resolution)
 
-  def getCubeIndex(self, ch, resolution, listofidxs):
+  def getCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
     
     cursor = self.conn.cursor()
     
-    sql = "SELECT zindex FROM {} WHERE zindex in (%s)".format(self.getIndexStore(ch, resolution)) 
+    if listoftimestamps:
+      sql = "SELECT zindex, timestamp FROM {} WHERE zindex={} and timestamp in (%s)".format(self.getIndexStore(ch, resolution), listofidxs[0])
+    else:
+      sql = "SELECT zindex FROM {} WHERE zindex in (%s)".format(self.getIndexStore(ch, resolution)) 
 
     # creats a %s for each list element
-    in_p=', '.join(map(lambda x: '%s', listofidxs))
+    in_p=', '.join(map(lambda x: '%s', listoftimestamps if listoftimestamps else listofidxs))
     # replace the single %s with the in_p string
     sql = sql % in_p
 
     try:
-      rc = cursor.execute(sql, listofidxs)
+      rc = cursor.execute(sql, listoftimestamps if listoftimestamps else listofidxs)
       ids_existing = cursor.fetchall()
       if ids_existing:
         ids_to_fetch = Set(listofidxs).difference( Set(i[0] for i in ids_existing))
@@ -103,14 +106,17 @@ class MySQLKVIO(KVIO):
       cursor.close()
 
   
-  def putCubeIndex(self, ch, resolution, listofidxs):
+  def putCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
     
     cursor = self.conn.cursor()
     
-    sql = "INSERT INTO {} VALUE (%s)".format(self.getIndexStore(ch, resolution))
+    if listoftimestamps:
+      sql = "REPLACE INTO {} (zindex, timestamp) VALUES (%s,%s)".format(self.getIndexStore(ch, resolution))
+    else:  
+      sql = "REPLACE INTO {} VALUE (%s)".format(self.getIndexStore(ch, resolution))
     
     try:
-      cursor.executemany(sql, listofidxs)
+      cursor.executemany(sql, zip(listofidxs*len(listoftimestamps), listoftimestamps) if listoftimestamps else listofidxs)
     except MySQLdb.Error, e:
       logger.error ( "Error inserting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise

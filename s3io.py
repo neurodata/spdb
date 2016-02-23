@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import boto3
+import botocore
 import blosc
 import hashlib
 from sets import Set
@@ -106,16 +107,23 @@ class S3IO:
     return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
   
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
-
+    """Retrieve multiple cubes from the database"""
+    
     super_listofidxs = Set([])
     for zidx in listofidxs:
       super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
    
     for super_zidx in super_listofidxs:
-      super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution)).get('Body').read()
-      yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
+      try:
+        super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution)).get('Body').read()
+        yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
+      except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchBucket':
+          pass
   
-  def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
+
+  def getTimeCubes(self, ch, listofidxsidx, listoftimestamps, resolution):
+    """Retrieve multiple cubes from the database"""
     return
  
   def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):

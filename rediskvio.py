@@ -52,18 +52,26 @@ class RedisKVIO(KVIO):
 
     return key_list
 
-  def getCubeIndex(self, ch, resolution, listofidxs):
+  def getCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
     """Retrieve the indexes of inserted cubes"""
+
     index_store = self.getIndexStore(ch, resolution)
     index_store_temp = index_store+'_temp'
-    self.client.sadd(index_store_temp, *listofidxs)
+    if listoftimestamps:
+      self.client.sadd(index_store_temp, *zip(listoftimestamps, listofidxs))
+    else:
+      self.client.sadd(index_store_temp, *listofidxs)
     ids_to_fetch = self.client.sdiff( index_store_temp, index_store )
     self.client.delete(index_store_temp)
     return list(ids_to_fetch)
   
-  def putCubeIndex(self, ch, resolution, listofidxs):
+  def putCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
     """Add the listofidxs to the store"""
-    self.client.sadd( self.getIndexStore(ch, resolution), *listofidxs)
+    
+    if listoftimestamps:
+      self.client.sadd( self.getIndexStore(ch, resolution), *zip(listoftimestamps, listofidxs))
+    else:
+      self.client.sadd( self.getIndexStore(ch, resolution), *listofidxs)
 
   def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
     """Retrieve a single cube from the database"""

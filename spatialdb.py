@@ -181,12 +181,17 @@ class SpatialDB:
   def putCube(self, ch, zidx, resolution, cube, timestamp=None, update=False):
     """ Store a cube in the annotation database """
     
-    if ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is not None:
+    # if ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is not None:
+      # raise
+
+    # Handle the cube format here
+    if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
+      self.kvio.putCubeIndex(ch, resolution, [zidx], [timestamp])
+    elif ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is None:
+      self.kvio.putCubeIndex(ch, resolution, [zidx])
+    else:
       raise
 
-    # KLTODO merge with your timestamp stuff using keyword arguments
-    # Handle the cube format here
-    self.kvio.putCubeIndex(ch, resolution, [zidx])
     if self.NPZ:
       self.kvio.putCube(ch, zidx, resolution, cube.toNPZ(), not cube.fromZeros(), timestamp=timestamp)
     else:
