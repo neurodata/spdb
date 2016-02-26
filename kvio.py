@@ -100,4 +100,3 @@ class KVIO:
       return RedisKVIO(db)
     else:
       return KVIO(db)
-
