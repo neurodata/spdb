@@ -17,11 +17,10 @@ import types
 from kvio import KVIO
 import redis
 
+from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 
-"""Helpers function to do cube I/O in across multiple DBs.
-    This uses the state and methods of spatialdb"""
 
 class RedisKVIO(KVIO):
 
@@ -57,26 +56,41 @@ class RedisKVIO(KVIO):
 
     index_store = self.getIndexStore(ch, resolution)
     index_store_temp = index_store+'_temp'
-    if listoftimestamps:
-      self.client.sadd(index_store_temp, *zip(listoftimestamps, listofidxs))
-    else:
-      self.client.sadd(index_store_temp, *listofidxs)
-    ids_to_fetch = self.client.sdiff( index_store_temp, index_store )
-    self.client.delete(index_store_temp)
+    
+    try:
+      if listoftimestamps:
+        self.client.sadd(index_store_temp, *zip(listoftimestamps, listofidxs))
+      else:
+        self.client.sadd(index_store_temp, *listofidxs)
+      ids_to_fetch = self.client.sdiff( index_store_temp, index_store )
+      self.client.delete(index_store_temp)
+    except Exception, e:
+      logger.error("Error retrieving cube indexes into the database. {}".format(e))
+      raise SpatialDBError("Error retrieving cube indexes into the database. {}".format(e))
+    
     return list(ids_to_fetch)
   
   def putCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
     """Add the listofidxs to the store"""
     
-    if listoftimestamps:
-      self.client.sadd( self.getIndexStore(ch, resolution), *zip(listoftimestamps, listofidxs))
-    else:
-      self.client.sadd( self.getIndexStore(ch, resolution), *listofidxs)
+    try: 
+      if listoftimestamps:
+        self.client.sadd( self.getIndexStore(ch, resolution), *zip(listoftimestamps, listofidxs))
+      else:
+        self.client.sadd( self.getIndexStore(ch, resolution), *listofidxs)
+    except Exception, e:
+      logger.error("Error inserting cube indexes into the database. {}".format(e))
+      raise SpatialDBError("Error inserting cube indexes into the database. {}".format(e))
 
   def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
     """Retrieve a single cube from the database"""
     
-    rows = self.client.mget( self.generateKeys(ch, resolution, [zidx], timestamp) )  
+    try:
+      rows = self.client.mget( self.generateKeys(ch, resolution, [zidx], timestamp) )  
+    except Exception, e:
+      logger.error("Error retrieving cubes into the database. {}".format(e))
+      raise SpatialDBError("Error retrieving cubes into the database. {}".format(e))
+    
     if rows[0]:
       return rows[0]
     else:
@@ -85,25 +99,47 @@ class RedisKVIO(KVIO):
   def getCubes(self, ch, listofidxs, resolution, neariso=False, timestamp=None):
     """Retrieve multiple cubes from the database"""
     
-    rows = self.client.mget( self.generateKeys(ch, resolution, listofidxs, timestamp) )
+    try:
+      rows = self.client.mget( self.generateKeys(ch, resolution, listofidxs, timestamp) )
+    except Exception, e:
+      logger.error("Error retrieving cubes into the database. {}".format(e))
+      raise SpatialDBError("Error retrieving cubes into the database. {}".format(e))
+    
     for idx, row in zip(listofidxs, rows):
       yield ( idx, row )
   
   def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
     """Retrieve multiple cubes from the database"""
     
-    rows = self.client.mget( self.generateKeys(ch, resolution, [idx], listoftimestamps) )
+    try:
+      rows = self.client.mget( self.generateKeys(ch, resolution, [idx], listoftimestamps) )
+    except Exception, e:
+      logger.error("Error inserting cubes into the database. {}".format(e))
+      raise SpatialDBError("Error inserting cubes into the database. {}".format(e))
+    
     for idx, timestamp, row in zip([idx]*len(listoftimestamps), listoftimestamps, rows):
       yield ( idx, timestamp, row )
  
   def putCube(self, ch, zidx, resolution, cubestr, update=False, timestamp=None):
     """Store a single cube into the database"""
     
+    # generating the key
     key_list = self.generateKeys(ch, resolution, [zidx], timestamp=timestamp)
-    self.client.mset( dict(zip(key_list, [cubestr])) )
+    
+    try:
+      self.client.mset( dict(zip(key_list, [cubestr])) )
+    except Exception, e:
+      logger.error("Error inserting cube into the database. {}".format(e))
+      raise SpatialDBError("Error inserting cube into the database. {}".format(e))
   
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False, timestamp=None):
     """Store multiple cubes into the database"""
     
+    # generating the list of keys
     key_list = self.generateKeys(ch, resolution, listofidxs, timestamp=timestamp)
-    self.client.mset( dict(zip(key_list, listofcubes)) )
+    
+    try:
+      self.client.mset( dict(zip(key_list, listofcubes)) )
+    except Exception, e:
+      logger.error("Error inserting cubes into the database. {}".format(e))
+      raise SpatialDBError("Error inserting cubes into the database. {}".format(e))

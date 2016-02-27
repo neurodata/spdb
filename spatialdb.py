@@ -31,7 +31,6 @@ import ndlib
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS
 
 from spatialdberror import SpatialDBError
-
 import logging
 logger=logging.getLogger("neurodata")
 
@@ -168,7 +167,6 @@ class SpatialDB:
       return data
     else:
       return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution)
-  
 
 
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
@@ -181,9 +179,6 @@ class SpatialDB:
   def putCube(self, ch, zidx, resolution, cube, timestamp=None, update=False):
     """ Store a cube in the annotation database """
     
-    # if ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is not None:
-      # raise
-
     # Handle the cube format here
     if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
       self.kvio.putCubeIndex(ch, resolution, [zidx], [timestamp])

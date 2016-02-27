@@ -14,6 +14,10 @@
 
 from cassandra.cluster import Cluster
 
+from spatialdberror import SpatialDBError
+import logging
+logger=logging.getLogger("neurodata")
+
 class CassandraKVIO:
 
   def __init__ ( self, db ):
@@ -56,7 +60,8 @@ class CassandraKVIO:
       else:
         return None
     except Exception, e:
-      pass
+      logger.error("Error retrieving cube from the database")
+      raise SpatialDBError("Error retrieving cube from the database")
 
 
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
@@ -81,65 +86,78 @@ class CassandraKVIO:
           yield (row.zidx, row.cuboid.decode('hex'))
 
       except Exception, e:
-        raise
+        logger.error("Error retrieving cubes from the database")
+        raise SpatialDBError("Error retrieving cubes from the database")
 
-  def putCube ( self, ch, zidx, resolution, cubestr, update=False ):
-    """Store a cube from the annotation database"""
+  def putCube(self, ch, zidx, resolution, cubestr, update=False):
+    """Store a cube into the database"""
 
     try:
       cql = "INSERT INTO {} ( resolution, zidx, cuboid ) VALUES ( {}, %s, %s )".format(ch.getTable(resolution), resolution)
       self.session.execute ( cql, (zidx, cubestr.encode('hex')))
     except Exception, e:
-      pass
+      logger.error("Error inserting cube into the database")
+      raise SpatialDBError("Error inserting cube into the database")
 
-
-  def getIndex ( self, ch, annid, resolution, update=False ):
-    """Fetch index routine. Update is irrelevant for KV clients"""
-
-    cql = "SELECT cuboids FROM {} WHERE annoid={} and resolution={}".format(ch.getIdxTable(resolution),annoid, resolution) 
-    row = self.session.execute (cql)
-
-    if row:
-      return row[0].cuboids.decode('hex')
-    else:
-      return None
-
-  def putIndex ( self, ch, annid, resolution, indexstr, update ):
-    """Cassandra put index routine"""
+  def putCubes(self, ch, zidx, resolution, cubestr, update=False):
+    """Store cubes into the database"""
     
-    cql = "INSERT INTO {} ( resolution, annoid, cuboids ) VALUES ( {}, {}, {} )".format(ch.getIdxTable(resolution), resolution, annid, indexstr.encode('hex'))
-    self.session.execute(cql)
-
-  def deleteIndex ( self, ch, annid, resolution ):
-    """Cassandra update index routine"""
-
-    cql = "DELETE FROM {} where annoid={} and resolution={}".format(ch.getIdxTable(resolution), annid, resolution)
-    self.session.execute(cql)
-
-
-  def getExceptions ( self, ch, zidx, resolution, annid ):
-    """Retrieve exceptions from the database by token, resolution, and zidx"""
-
+    # KL TODO Make it multi insert
     try:
-      cql = "SELECT exceptions FROM exceptions WHERE resolution = %s AND zidx = %s and annoid=%s"
-      row = self.session.execute ( cql, (resolution, zidx, annid ))
+      cql = "INSERT INTO {} ( resolution, zidx, cuboid ) VALUES ( {}, %s, %s )".format(ch.getTable(resolution), resolution)
+      self.session.execute ( cql, (zidx, cubestr.encode('hex')))
     except Exception, e:
-      raise
-
-    if row:
-      return row[0].exceptions.decode('hex')
-    else:
-      return None
-
-  def putExceptions ( self, ch, zidx, resolution, annid, excstr, update=False ):
-    """Store exceptions in the annotation database"""
-
-    cql = "INSERT INTO exceptions ( resolution, zidx, annoid, exceptions ) VALUES ( %s, %s, %s, %s )"
-    self.session.execute ( cql, ( resolution, zidx, annid, excstr.encode('hex')))
+      logger.error("Error inserting cubes into the database")
+      raise SpatialDBError("Error inserting cubes into the database")
 
 
-  def deleteExceptions ( self, ch, zidx, resolution, annid ):
-    """Delete a list of exceptions for this cuboid"""
+  # def getIndex ( self, ch, annid, resolution, update=False ):
+    # """Fetch index routine. Update is irrelevant for KV clients"""
 
-    cql = "DELETE FROM exceptions WHERE resolution = %s AND zidx = %s AND annoid = %s"
-    self.session.execute ( cql, ( resolution, zidx, annid))
+    # cql = "SELECT cuboids FROM {} WHERE annoid={} and resolution={}".format(ch.getIdxTable(resolution),annoid, resolution) 
+    # row = self.session.execute (cql)
+
+    # if row:
+      # return row[0].cuboids.decode('hex')
+    # else:
+      # return None
+
+  # def putIndex ( self, ch, annid, resolution, indexstr, update ):
+    # """Cassandra put index routine"""
+    
+    # cql = "INSERT INTO {} ( resolution, annoid, cuboids ) VALUES ( {}, {}, {} )".format(ch.getIdxTable(resolution), resolution, annid, indexstr.encode('hex'))
+    # self.session.execute(cql)
+
+  # def deleteIndex ( self, ch, annid, resolution ):
+    # """Cassandra update index routine"""
+
+    # cql = "DELETE FROM {} where annoid={} and resolution={}".format(ch.getIdxTable(resolution), annid, resolution)
+    # self.session.execute(cql)
+
+
+  # def getExceptions ( self, ch, zidx, resolution, annid ):
+    # """Retrieve exceptions from the database by token, resolution, and zidx"""
+
+    # try:
+      # cql = "SELECT exceptions FROM exceptions WHERE resolution = %s AND zidx = %s and annoid=%s"
+      # row = self.session.execute ( cql, (resolution, zidx, annid ))
+    # except Exception, e:
+      # raise
+
+    # if row:
+      # return row[0].exceptions.decode('hex')
+    # else:
+      # return None
+
+  # def putExceptions ( self, ch, zidx, resolution, annid, excstr, update=False ):
+    # """Store exceptions in the annotation database"""
+
+    # cql = "INSERT INTO exceptions ( resolution, zidx, annoid, exceptions ) VALUES ( %s, %s, %s, %s )"
+    # self.session.execute ( cql, ( resolution, zidx, annid, excstr.encode('hex')))
+
+
+  # def deleteExceptions ( self, ch, zidx, resolution, annid ):
+    # """Delete a list of exceptions for this cuboid"""
+
+    # cql = "DELETE FROM exceptions WHERE resolution = %s AND zidx = %s AND annoid = %s"
+    # self.session.execute ( cql, ( resolution, zidx, annid))
