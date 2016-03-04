@@ -27,31 +27,14 @@ from cube import Cube
 import imagecube
 import anncube
 
+import s3io
 import ndlib
-from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS
+from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE
 
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 
-# import mysqlkvio
-import s3io
-# try:
-  # import casskvio
-# except:
-  # pass
-# try:
-  # import riakkvio
-# except:
-  # pass
-# try:
-  # import dynamokvio
-# except:
-  # pass
-# try:
-  # import rediskvio
-# except:
-  # pass
 
 """
 .. module:: spatialdb
@@ -78,40 +61,6 @@ class SpatialDB:
     
     from kvio import KVIO
     self.kvio = KVIO.getIOEngine(self)
-
-    # # Choose the I/O engine for key/value data
-    # if self.proj.getKVEngine() == MYSQL:
-      # import mysqlkvio
-      # self.kvio = mysqlkvio.MySQLKVIO(self)
-      # self.NPZ = True
-    
-    # elif self.proj.getKVEngine() == RIAK:
-      # import riakkvio
-      # self.conn = None
-      # self.cursor = None
-      # self.kvio = riakkvio.RiakKVIO(self)
-      # self.NPZ = False
-    
-    # elif self.proj.getKVEngine() == CASSANDRA:
-      # import casskvio
-      # self.conn = None
-      # self.cursor = None
-      # self.kvio = casskvio.CassandraKVIO(self)
-      # self.NPZ = False
-
-    # elif self.proj.getKVEngine() == DYNAMODB:
-      # import dynamokvio
-      # self.conn = None
-      # self.cursor = None
-      # self.kvio = dynamokvio.DynamoKVIO(self)
-      # self.NPZ = False
-
-    # elif self.proj.getKVEngine() == REDIS:
-      # import rediskvio
-      # self.conn = None
-      # self.cursor = None
-      # self.kvio = rediskvio.RedisKVIO(self)
-      # self.NPZ = False
 
     # else:
       # raise SpatialDBError ("Unknown key/value store. Engine = {}".format(self.proj.getKVEngine()))
@@ -152,19 +101,19 @@ class SpatialDB:
     """Return a list of cubes"""
     
     if listoftimestamps is None:
-      ids_to_fetch = self.kvio.getCubeIndex(ch, resolution, listofidxs)
-      # Checking if the index exists inside the database or not
-      if ids_to_fetch:
-        print "Miss:", listofidxs
-        super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
-        
-        # iterating over super_cuboids
-        for superlistofidxs, superlistofcubes in super_cuboids:
-          # call putCubes and update index in the table before returning data
-          self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
-          # self.kvio.putCubeIndex(ch, resolution, superlistofidxs) 
-      data = self.kvio.getCubes(ch, listofidxs, resolution, neariso)
-      return data
+      if self.proj.getS3Backend() is S3_TRUE:
+        ids_to_fetch = self.kvio.getCubeIndex(ch, resolution, listofidxs)
+        # Checking if the index exists inside the database or not
+        if ids_to_fetch:
+          print "Miss:", listofidxs
+          super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
+          
+          # iterating over super_cuboids
+          for superlistofidxs, superlistofcubes in super_cuboids:
+            # call putCubes and update index in the table before returning data
+            self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
+            # self.kvio.putCubeIndex(ch, resolution, superlistofidxs) 
+      return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
     else:
       return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution)
 

@@ -23,20 +23,22 @@ from django.conf import settings
 import ndlib
 from s3util import generateS3BucketName, generateS3Key
 
+from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 
-
-"""Helpers function to do cube I/O in across multiple DBs.
-    This uses the state and methods of spatialdb"""
 
 class S3IO:
 
   def __init__ ( self, db ):
     """Connect to the S3 backend"""
     
-    self.db = db
-    self.client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+    try:
+      self.db = db
+      self.client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+    except Exception, e:
+      logger.error("Cannot connect to S3 backend")
+      raise SpatialDBError("Cannot connect to S3 backend")
     
    # def generateKey(self, zidx, resolution):
     # """Generate key for the supercube"""
@@ -103,8 +105,13 @@ class S3IO:
     """Retrieve a cube from the database by token, resolution, and zidx"""
     
     super_zidx = self.generateSuperZindex(zidx, resolution)
-    super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution)).get('Body').read()
-    return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
+    try:
+      super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution)).get('Body').read()
+      return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
+    except botocore.exceptions.DataNotFoundError as e:
+      logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
+      raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
+    
   
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
@@ -117,9 +124,12 @@ class S3IO:
       try:
         super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution)).get('Body').read()
         yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
-      except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == 'NoSuchBucket':
-          pass
+      except botocore.exceptions.DataNotFoundError as e:
+        logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+        raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+      # except botocore.exceptions.ClientError as e:
+        # if e.response['Error']['Code'] == 'NoSuchBucket':
+          # pass
   
 
   def getTimeCubes(self, ch, listofidxsidx, listoftimestamps, resolution):
@@ -132,4 +142,13 @@ class S3IO:
   
   def putCube ( self, ch, zidx, timestamp, resolution, cubestr, update=False ):
     """Store a cube from the annotation database"""
+    
+    super_zidx = self.generateSuperZindex(zidx, resolution)
+    try:
+      self.client.put_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution, Body=''))
+    except botocore.exceptions.EndpointConnectionError as e:
+      import pdb; pdb.set_trace()
+      logger.error("Cannot write s3 object. {}".format(e))
+      raise SpatialDBError("Cannot write s3 object. {}".format(e))
+    
     return
