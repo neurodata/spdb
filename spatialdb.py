@@ -121,7 +121,8 @@ class SpatialDB:
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
     """Insert a list of cubes"""
     
-    self.kvio.putCubeIndex(ch, resolution, listofidxs)
+    if self.proj.getS4Backend() is S3_TRUE:
+      self.kvio.putCubeIndex(ch, resolution, listofidxs)
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
   # PUT Method
@@ -129,12 +130,14 @@ class SpatialDB:
     """ Store a cube in the annotation database """
     
     # Handle the cube format here
-    if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
-      self.kvio.putCubeIndex(ch, resolution, [zidx], [timestamp])
-    elif ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is None:
-      self.kvio.putCubeIndex(ch, resolution, [zidx])
-    else:
-      raise
+    if self.proj.getS3Backend() is S3_TRUE:
+      if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
+        self.kvio.putCubeIndex(ch, resolution, [zidx], [timestamp])
+      elif ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is None:
+        self.kvio.putCubeIndex(ch, resolution, [zidx])
+      else:
+        logger.error("Timestamp is not None for Image Channels.")
+        raise SpatialDBError("Timestamp is not None for Image Channels.")
 
     if self.NPZ:
       self.kvio.putCube(ch, zidx, resolution, cube.toNPZ(), not cube.fromZeros(), timestamp=timestamp)
