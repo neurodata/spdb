@@ -106,7 +106,7 @@ class S3IO:
     
     super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution)).get('Body').read()
+      super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx)).get('Body').read()
       return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
@@ -122,7 +122,7 @@ class S3IO:
    
     for super_zidx in super_listofidxs:
       try:
-        super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution)).get('Body').read()
+        super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx)).get('Body').read()
         yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
       except botocore.exceptions.DataNotFoundError as e:
         logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
@@ -140,12 +140,12 @@ class S3IO:
     """Store multiple cubes into the database"""
     return
   
-  def putCube ( self, ch, zidx, timestamp, resolution, cubestr, update=False ):
+  def putCube ( self, ch, resolution, zidx, cubestr, timestamp=None, update=False ):
     """Store a cube from the annotation database"""
     
     super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      self.client.put_object(Bucket=generateS3BucketName(self.db.proj.getProjectName(), ch.getChannelName()), Key=generateS3Key(super_zidx, resolution, Body=''))
+      self.client.put_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx, Body=cubestr))
     except botocore.exceptions.EndpointConnectionError as e:
       import pdb; pdb.set_trace()
       logger.error("Cannot write s3 object. {}".format(e))
