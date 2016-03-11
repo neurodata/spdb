@@ -163,7 +163,11 @@ class MySQLKVIO(KVIO):
   def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
     """Retrieve a cube from the database by token, resolution, and zidx"""
 
-    cursor = self.conn.cursor()
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
     
     if timestamp is None:
       if ch.getChannelType() == OLDCHANNEL:
@@ -183,9 +187,10 @@ class MySQLKVIO(KVIO):
       logger.error("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     finally:
-      cursor.close()
+      # close the local cursor if not in a transaction
+      if self.txncursor is None:
+        cursor.close()
 
-    
     # If we can't find a cube, assume it hasn't been written yet
     if row is None:
       return None
@@ -195,7 +200,11 @@ class MySQLKVIO(KVIO):
   
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
 
-    cursor = self.conn.cursor()
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
 
     if ch.getChannelType() == OLDCHANNEL:
       channel_id = self.getChannelId(ch)
@@ -230,12 +239,18 @@ class MySQLKVIO(KVIO):
       raise SpatialDBError("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
 
     finally:
-      cursor.close()
+      # close the local cursor if not in a transaction
+      if self.txncursor is None:
+        cursor.close()
 
   
   def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
 
-    cursor = self.conn.cursor()
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
 
     sql = "SELECT zindex,timestamp,cube FROM {} WHERE zindex={} and timestamp in (%s)".format(ch.getTable(resolution), idx)
 
@@ -263,7 +278,9 @@ class MySQLKVIO(KVIO):
       raise SpatialDBError("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
  
     finally:
-      cursor.close()
+      # close the local cursor if not in a transaction
+      if self.txncursor is None:
+        cursor.close()
 
 
   def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
@@ -291,7 +308,11 @@ class MySQLKVIO(KVIO):
   def putCube ( self, ch, zidx, resolution, cubestr, update=False, timestamp=None ):
     """Store a cube from the annotation database"""
 
-    cursor = self.conn.cursor()
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
 
     # we created a cube from zeros
     if not update:
@@ -312,7 +333,9 @@ class MySQLKVIO(KVIO):
         raise SpatialDBError("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       
       finally:
-        cursor.close()
+        # close the local cursor if not in a transaction and commit right away
+        if self.txncursor is None:
+          cursor.close()
 
     else:
       if timestamp is None:
@@ -328,10 +351,13 @@ class MySQLKVIO(KVIO):
         raise SpatialDBError("Error updating data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       
       finally:
-        cursor.close()
+        # close the local cursor if not in a transaction and commit right away
+        if self.txncursor is None:
+          cursor.close()
 
     # commit if not in a txn
-    self.conn.commit()
+    if self.txncursor is None:
+      self.conn.commit()
 
 
   def getIndex ( self, ch, annid, resolution, update ):
