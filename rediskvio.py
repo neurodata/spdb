@@ -28,8 +28,12 @@ class RedisKVIO(KVIO):
     """Connect to the Redis backend"""
     
     self.db = db
-    self.client = redis.StrictRedis(host=self.db.proj.getDBHost(), port=6379, db=0)
-    self.pipe = self.client.pipeline(transaction=False)
+    try:
+      self.client = redis.StrictRedis(host=self.db.proj.getDBHost(), port=6379, db=0)
+      self.pipe = self.client.pipeline(transaction=False)
+    except redis.ConnectionError as e:
+      logger.error("Could not connect to Redis server. {}".format(e))
+      raise SpatialDBError("Could not connect to Redis server. {}".format(e))
     
   def getIndexStore(self, ch, resolution):
     """Generate the name of the Index Store"""

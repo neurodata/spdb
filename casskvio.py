@@ -26,9 +26,13 @@ class CassandraKVIO:
     self.db = db
 
     # connect to cassandra
-    self.cluster = Cluster( [self.db.proj.getKVServer()] )
-    self.session = self.cluster.connect(self.db.proj.getDBName())
-    self.session.default_timeout = 120
+    try:
+      self.cluster = Cluster( [self.db.proj.getKVServer()] )
+      self.session = self.cluster.connect(self.db.proj.getDBName())
+      self.session.default_timeout = 120
+    except Exception as e:
+      logger.warning("Could not connect to the Cassandra cluster. {}".format(e))
+      raise SpatialDBError("Could not connect to the Cassandra cluster. {}".format(e))
 
   def close ( self ):
     """Close the connection"""
