@@ -127,9 +127,11 @@ class S3IO:
       except botocore.exceptions.DataNotFoundError as e:
         logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
         raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
-      # except botocore.exceptions.ClientError as e:
-        # if e.response['Error']['Code'] == 'NoSuchBucket':
-          # pass
+      except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuckKey':
+          continue
+        if e.response['Error']['Code'] == 'NoSuchBucket':
+          pass
   
 
   def getTimeCubes(self, ch, listofidxsidx, listoftimestamps, resolution):
@@ -140,12 +142,12 @@ class S3IO:
     """Store multiple cubes into the database"""
     return
   
-  def putCube ( self, ch, resolution, zidx, cubestr, timestamp=None, update=False ):
+  def putCube ( self, ch, resolution, super_zidx, cubestr, timestamp=None, update=False ):
     """Store a cube from the annotation database"""
     
-    super_zidx = self.generateSuperZindex(zidx, resolution)
+    # super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      self.client.put_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx, Body=cubestr))
+      self.client.put_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx), Body=cubestr)
     except botocore.exceptions.EndpointConnectionError as e:
       import pdb; pdb.set_trace()
       logger.error("Cannot write s3 object. {}".format(e))

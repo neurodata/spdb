@@ -101,7 +101,7 @@ class SpatialDB:
     """Return a list of cubes"""
     
     if listoftimestamps is None:
-      if self.proj.getS3Backend() is S3_TRUE:
+      if self.proj.getS3Backend() == S3_TRUE:
         ids_to_fetch = self.kvio.getCubeIndex(ch, resolution, listofidxs)
         # Checking if the index exists inside the database or not
         if ids_to_fetch:
@@ -121,7 +121,7 @@ class SpatialDB:
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
     """Insert a list of cubes"""
     
-    if self.proj.getS4Backend() is S3_TRUE:
+    if self.proj.getS3Backend() == S3_TRUE:
       self.kvio.putCubeIndex(ch, resolution, listofidxs)
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
@@ -130,7 +130,7 @@ class SpatialDB:
     """ Store a cube in the annotation database """
     
     # Handle the cube format here
-    if self.proj.getS3Backend() is S3_TRUE:
+    if self.proj.getS3Backend() == S3_TRUE:
       if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
         self.kvio.putCubeIndex(ch, resolution, [zidx], [timestamp])
       elif ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is None:
