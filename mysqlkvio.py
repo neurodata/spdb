@@ -45,6 +45,10 @@ class MySQLKVIO(KVIO):
 
     # start with no cursor
     self.txncursor = None
+  
+  def __del__(self):
+    """Close the database connection"""
+    self.close()
 
   def close ( self ):
     """Close the connection"""
