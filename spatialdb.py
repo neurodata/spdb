@@ -29,7 +29,7 @@ import anncube
 
 import s3io
 import ndlib
-from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE
+from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, PROPAGATED
 
 from spatialdberror import SpatialDBError
 import logging
@@ -531,7 +531,7 @@ class SpatialDB:
 
   def cutout ( self, ch, corner, dim, resolution, timerange=None, zscaling=None, annoids=None ):
     """Extract a cube of arbitrary size. Need not be aligned."""
-
+    
     # if cutout is below resolution, get a smaller cube and scaleup
     if ch.getChannelType() in ANNOTATION_CHANNELS and ch.getResolution() > resolution:
 
@@ -629,7 +629,8 @@ class SpatialDB:
           if self.NPZ:
             incube.fromNPZ ( datastring[:] )
           else:
-            incube.fromBlosc ( datastring[:] )
+            if datastring:
+              incube.fromBlosc ( datastring[:] )
 
           # apply exceptions if it's an annotation project
           if annoids!= None and ch.getChannelType() in ANNOTATION_CHANNELS:
