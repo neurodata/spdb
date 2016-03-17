@@ -831,6 +831,89 @@ class SpatialDB:
     except:
       return None, None
 
+    import pdb; pdb.set_trace()
+
+    xmincube = np.amin(xyzvals[:,0]) 
+    ymincube = np.amin(xyzvals[:,1]) 
+    zmincube = np.amin(xyzvals[:,2]) 
+
+    xmaxcube = np.amax(xyzvals[:,0]) 
+    ymaxcube = np.amax(xyzvals[:,1]) 
+    zmaxcube = np.amax(xyzvals[:,2]) 
+
+    # intialize min/max values
+    [ xmin, ymin, zmin ] = self.datasetcfg.imagesize[effectiveres]
+    xmax = 0
+    ymax = 0
+    zmax = 0
+    
+    for zidx in zidxs:
+
+      [ xcube, ycube, zcube ] = ndlib.MortonXYZ(zidx) 
+
+      # load the cube if you need it
+      if xcube == xmincube or ycube == ymincube or zcube == zmincube or xcube == xmaxcube or ycube or ymaxcube or zcube == zmaxcube:
+        cb = self.getCube(ch,zidx,effectiveres) 
+
+        # is it a min/max cube in any dimensino
+        if xcube == xmincube:
+          xminvox = min ( xminvox, np.amin ( np.nonzero(cb.data)[:,0] ))
+        elif ycube == ymincube:
+          yminvox = min ( yminvox, np.amin ( np.nonzero(cb.data)[:,1] ))
+        elif zcube == zmincube:
+          zminvox = min ( zminvox, np.amin ( np.nonzero(cb.data)[:,2] ))
+        elif xcube == xmaxcube:
+          xmaxvox = max ( xmaxvox, np.amin ( np.nonzero(cb.data)[:,0] ))
+        elif ycube == ymaxcube:
+          ymaxvox = max ( ymaxvox, np.amin ( np.nonzero(cb.data)[:,1] ))
+        elif zcube == zmaxcube:
+          zmaxvox = max ( zmaxvox, np.amin ( np.nonzero(cb.data)[:,2] ))
+
+    # convert from cube local to absolute coords
+    assert 0
+
+    cubedim = self.datasetcfg.cubedim [ resolution ] 
+
+    # find the corners
+    xmin = min(xyzvals[:,0]) * cubedim[0] * scaling
+    xmax = (max(xyzvals[:,0])+1) * cubedim[0] * scaling
+    ymin = min(xyzvals[:,1]) * cubedim[1] * scaling
+    ymax = (max(xyzvals[:,1])+1) * cubedim[1] * scaling
+    zmin = min(xyzvals[:,2]) * cubedim[2]
+    zmax = (max(xyzvals[:,2])+1) * cubedim[2]
+
+    corner = [ xmin, ymin, zmin ]
+    dim = [ xmax-xmin, ymax-ymin, zmax-zmin ]
+
+    return (corner,dim)
+
+
+  def getBoundingCube ( self, ch, annids, res ):
+    """Return a corner and dimension of the bounding cuboid for an annotation using the index"""
+  
+    # get the size of the image and cube
+    resolution = int(res)
+
+    # determine the resolution for project information
+    if ch.getResolution() > resolution:
+      effectiveres = ch.getResolution() 
+      scaling = 2**(effectiveres-resolution)
+    else:
+      effectiveres = resolution
+      scaling=1
+
+    # all boxes in the indexes
+    zidxs=[]
+    for annid in annids:
+      zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
+    
+    # convert to xyz coordinates
+    try:
+      xyzvals = np.array ( [ ndlib.MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
+    # if there's nothing in the chain, the array creation will fail
+    except:
+      return None, None
+
     cubedim = self.datasetcfg.cubedim [ resolution ] 
 
     # find the corners
