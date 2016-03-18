@@ -822,16 +822,14 @@ class SpatialDB:
     # all boxes in the indexes
     zidxs=[]
     for annid in annids:
-      zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
-    
+     zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
+
     # convert to xyz coordinates
     try:
       xyzvals = np.array ( [ ndlib.MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
     # if there's nothing in the chain, the array creation will fail
     except:
       return None, None
-
-    import pdb; pdb.set_trace()
 
     xmincube = np.amin(xyzvals[:,0]) 
     ymincube = np.amin(xyzvals[:,1]) 
@@ -842,45 +840,47 @@ class SpatialDB:
     zmaxcube = np.amax(xyzvals[:,2]) 
 
     # intialize min/max values
-    [ xmin, ymin, zmin ] = self.datasetcfg.imagesize[effectiveres]
+    [ xmin, ymin, zmin ] = self.datasetcfg.imagesz[effectiveres]
     xmax = 0
     ymax = 0
     zmax = 0
     
+    # must reinitialize the generator
+    zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
     for zidx in zidxs:
-
+  
       [ xcube, ycube, zcube ] = ndlib.MortonXYZ(zidx) 
 
       # load the cube if you need it
       if xcube == xmincube or ycube == ymincube or zcube == zmincube or xcube == xmaxcube or ycube or ymaxcube or zcube == zmaxcube:
         cb = self.getCube(ch,zidx,effectiveres) 
 
-        # is it a min/max cube in any dimensino
-        if xcube == xmincube:
-          xminvox = min ( xminvox, np.amin ( np.nonzero(cb.data)[:,0] ))
-        elif ycube == ymincube:
-          yminvox = min ( yminvox, np.amin ( np.nonzero(cb.data)[:,1] ))
-        elif zcube == zmincube:
-          zminvox = min ( zminvox, np.amin ( np.nonzero(cb.data)[:,2] ))
-        elif xcube == xmaxcube:
-          xmaxvox = max ( xmaxvox, np.amin ( np.nonzero(cb.data)[:,0] ))
-        elif ycube == ymaxcube:
-          ymaxvox = max ( ymaxvox, np.amin ( np.nonzero(cb.data)[:,1] ))
-        elif zcube == zmaxcube:
-          zmaxvox = max ( zmaxvox, np.amin ( np.nonzero(cb.data)[:,2] ))
+        for annid in annids:
 
-    # convert from cube local to absolute coords
-    assert 0
+          # is it a min/max cube in any dimension
+          # data are in z,y,x
+          if xcube == xmincube:
+            xmin = min ( xmin, min ( np.where(cb.data == annid )[2] ))
+          if ycube == ymincube:
+            ymin = min ( ymin, min ( np.where(cb.data == annid )[1] ))
+          if zcube == zmincube:
+            zmin = min ( zmin, min ( np.where(cb.data == annid )[0] ))
+          if xcube == xmaxcube:
+            xmax = max ( xmax, max ( np.where(cb.data == annid )[2] ))
+          if ycube == ymaxcube:
+            ymax = max ( ymax, max ( np.where(cb.data == annid )[1] ))
+          if zcube == zmaxcube:
+            zmax = max ( zmax, max ( np.where(cb.data == annid )[0] ))
 
+    # convert to cube/scale coordinates
     cubedim = self.datasetcfg.cubedim [ resolution ] 
 
-    # find the corners
-    xmin = min(xyzvals[:,0]) * cubedim[0] * scaling
-    xmax = (max(xyzvals[:,0])+1) * cubedim[0] * scaling
-    ymin = min(xyzvals[:,1]) * cubedim[1] * scaling
-    ymax = (max(xyzvals[:,1])+1) * cubedim[1] * scaling
-    zmin = min(xyzvals[:,2]) * cubedim[2]
-    zmax = (max(xyzvals[:,2])+1) * cubedim[2]
+    xmin = (xmincube*cubedim[0] + xmin) * scaling
+    ymin = (ymincube*cubedim[1] + ymin) * scaling
+    zmin = (zmincube*cubedim[2] + zmin) * scaling
+    xmax = (xmaxcube*cubedim[0] + xmax + 1) * scaling
+    ymax = (ymaxcube*cubedim[1] + ymax + 1) * scaling
+    zmax = (zmaxcube*cubedim[2] + zmax + 1) * scaling
 
     corner = [ xmin, ymin, zmin ]
     dim = [ xmax-xmin, ymax-ymin, zmax-zmin ]
