@@ -135,30 +135,39 @@ class Cube:
   def getCube(cubedim, channel_type, datatype, timerange=None):
 
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
-      return anncube.AnnotateCube (cubedim)
+      from anncube import AnnotateCube
+      return AnnotateCube(cubedim)
     elif channel_type in TIMESERIES_CHANNELS and timerange is not None:
       if datatype in DTYPE_uint8:
-        return timecube.TimeCube8(cubedim, timerange)
+        from timecube8 import TimeCube8
+        return TimeCube8(cubedim, timerange)
       elif datatype in DTYPE_uint16:
-        return timecube.TimeCube16(cubedim, timerange)
+        from timecube16 import TimeCube16 
+        return TimeCube16(cubedim, timerange)
       elif datatype in DTYPE_float32:
-        return timecube.TimeCubeFloat32(cubedim, timerange)
+        from timecubefloat32 import TimeCubeFloat32
+        return TimeCubeFloat32(cubedim, timerange)
     elif datatype in DTYPE_uint8:
-      return imagecube.ImageCube8 (cubedim)
+      from imagecube8 import ImageCube8
+      return ImageCube8(cubedim)
     elif datatype in DTYPE_uint16:
-      return imagecube.ImageCube16 (cubedim)
+      from imagecube16 import ImageCube16
+      return ImageCube16(cubedim)
     elif datatype in DTYPE_uint32:
-      return imagecube.ImageCube32 (cubedim)
+      from imagecube32 import ImageCube32
+      return ImageCube32(cubedim)
     elif datatype in DTYPE_uint64:
-      return imagecube.ImageCube64 (cubedim)
+      from imagecube64 import ImageCube64
+      return ImageCube64(cubedim)
     elif datatype in DTYPE_float32:
-      return imagecube.ImageCubeFloat32 (cubedim)
+      from imagecubefloat32 import ImageCubeFloat32
+      return ImageCubeFloat32(cubedim)
     else:
       return Cube(cubedim)
 
 
 # end cube
 
-import imagecube
-import anncube
-import timecube
+# import imagecube
+# import anncube
+# import timecube
