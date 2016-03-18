@@ -32,14 +32,13 @@ logger=logging.getLogger("neurodata")
 
 class Cube:
 
-  #  Express cubesize in [ x,y,z ]
-  def __init__(self, cubesize):
-    """Create empty array of cubesize"""
+  def __init__(self, cube_size):
+    """Create empty array of cubesize. Express cube_size in [x,y,z]"""
 
     # cubesize is in z,y,x for interactions with tile/image data
-    self.zdim, self.ydim, self.xdim = self.cubesize = [ cubesize[2],cubesize[1],cubesize[0] ]
+    self.zdim, self.ydim, self.xdim = self.cubesize = [cube_size[2], cube_size[1], cube_size[0]]
     # RB this next line is not typed and produces floats.  Cube needs to be created in the derived classes
-#    self.data = np.empty ( self.cubesize )
+    # self.data = np.empty ( self.cubesize )
 
 
   def addData ( self, other, index ):
@@ -65,17 +64,17 @@ class Cube:
   
   def trim ( self, xoffset, xsize, yoffset, ysize, zoffset, zsize ):
     """Trim off the excess data"""
-    self.data = self.data [ zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize ]
+    self.data = self.data[zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize]
 
-  def fromNPZ ( self, pandz ):
+  def fromNPZ ( self, compressed_data ):
     """Load the cube from a pickled and zipped blob"""
+    
     try:
-      self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( pandz[:] ) ) )
+      self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( compressed_data[:] ) ) )
       self.zdim, self.ydim, self.xdim = self.data.shape
-
     except:
-      logger.error ("Failed to decompress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to decompress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")
 
     self._newcube = False
 
@@ -84,12 +83,12 @@ class Cube:
     """Pickle and zip the object"""
     try:
       # Create the compressed cube
-      fileobj = cStringIO.StringIO ()
-      np.save ( fileobj, self.data )
+      fileobj = cStringIO.StringIO()
+      np.save (fileobj, self.data)
       return  zlib.compress (fileobj.getvalue())
     except:
-      logger.error ("Failed to compress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to compress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to compress database cube. Data integrity concern.")
  
   def toBlosc ( self ):
     """Pack the object"""
@@ -97,18 +96,18 @@ class Cube:
       # Create the compressed cube
       return blosc.pack_array(self.data) 
     except:
-      logger.error ("Failed to compress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to compress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to compress database cube. Data integrity concern.")
   
-  def fromBlosc ( self, pandz ):
+  def fromBlosc(self, compressed_data):
     """Load the cube from a pickled and zipped blob"""
+    
     try:
-      self.data = blosc.unpack_array(pandz[:])
+      self.data = blosc.unpack_array(compressed_data[:])
       self.zdim, self.ydim, self.xdim = self.data.shape
-
     except:
-      logger.error ("Failed to decompress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to decompress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")
 
     self._newcube = False
   
@@ -164,10 +163,3 @@ class Cube:
       return ImageCubeFloat32(cubedim)
     else:
       return Cube(cubedim)
-
-
-# end cube
-
-# import imagecube
-# import anncube
-# import timecube

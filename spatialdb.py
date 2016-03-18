@@ -24,8 +24,6 @@ import MySQLdb
 
 import annindex
 from cube import Cube
-import imagecube
-import anncube
 
 import s3io
 import ndlib
