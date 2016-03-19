@@ -84,7 +84,7 @@ class KVIO:
     
     if db.KVENGINE == MYSQL:
       from mysqlkvio import MySQLKVIO
-      db.NPZ = True
+      db.NPZ = False
       return MySQLKVIO(db)
     elif db.KVENGINE == CASSANDRA:
       from casskvio import CassandraKVIO
