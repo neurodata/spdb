@@ -6,10 +6,10 @@ Spatial Database Layer for ndstore
 
 Engines Support:
 
-| Key-value Store   | Spatial Database  | RAMON   |
-| ----------------- | ----------------- | ------- |
-| MySQL             | Yes               | Yes     |
-| Cassandra         | Yes               | No      |
-| Riak              | No(Planned)       | No      |                
-| Amazon DynamoDB   | Yes               | No      |
-| Redis             | Yes               | No      |
+| Key-value Store   | Spatial Database  | RAMON   | Index Data  |
+| ----------------- | ----------------- | ------- | ----------- |
+| MySQL             | Yes               | Yes     | Yes         |
+| Cassandra         | Yes               | No      | No          |
+| Riak              | No(Planned)       | No      | No          |               
+| Amazon DynamoDB   | Yes               | No      | No          |
+| Redis             | Yes               | No      | Yes         |

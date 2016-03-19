@@ -26,6 +26,8 @@ import annindex
 from cube import Cube
 
 import s3io
+from kvio import KVIO
+from kvindex import KVIndex
 import ndlib
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
 
@@ -57,8 +59,8 @@ class SpatialDB:
     self.KVENGINE = self.proj.getKVEngine()
     self.NPZ = False
     
-    from kvio import KVIO
     self.kvio = KVIO.getIOEngine(self)
+    self.kvindex = KVIndex.getIndexEngine(self)
 
     # else:
       # raise SpatialDBError ("Unknown key/value store. Engine = {}".format(self.proj.getKVEngine()))
@@ -100,7 +102,7 @@ class SpatialDB:
     
     if listoftimestamps is None:
       if self.proj.getS3Backend() == S3_TRUE:
-        ids_to_fetch = self.kvio.getCubeIndex(ch, resolution, listofidxs)
+        ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
         # Checking if the index exists inside the database or not
         if ids_to_fetch:
           print "Miss:", listofidxs
@@ -110,7 +112,7 @@ class SpatialDB:
           for superlistofidxs, superlistofcubes in super_cuboids:
             # call putCubes and update index in the table before returning data
             self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
-            # self.kvio.putCubeIndex(ch, resolution, superlistofidxs) 
+            
       return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
     else:
       return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution)
@@ -120,7 +122,7 @@ class SpatialDB:
     """Insert a list of cubes"""
     
     if self.proj.getS3Backend() == S3_TRUE:
-      self.kvio.putCubeIndex(ch, resolution, listofidxs)
+      self.kvindex.putCubeIndex(ch, resolution, listofidxs)
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
   # PUT Method
@@ -130,9 +132,9 @@ class SpatialDB:
     # Handle the cube format here
     if self.proj.getS3Backend() == S3_TRUE:
       if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
-        self.kvio.putCubeIndex(ch, resolution, [zidx], [timestamp])
+        self.kvindex.putCubeIndex(ch, resolution, [zidx], [timestamp])
       elif ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is None:
-        self.kvio.putCubeIndex(ch, resolution, [zidx])
+        self.kvindex.putCubeIndex(ch, resolution, [zidx])
       else:
         logger.error("Timestamp is not None for Image Channels.")
         raise SpatialDBError("Timestamp is not None for Image Channels.")

@@ -35,9 +35,6 @@ class RedisKVIO(KVIO):
       logger.error("Could not connect to Redis server. {}".format(e))
       raise SpatialDBError("Could not connect to Redis server. {}".format(e))
     
-  def getIndexStore(self, ch, resolution):
-    """Generate the name of the Index Store"""
-    return '{}_{}_{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution)
 
   def generateKeys(self, ch, resolution, zidx_list, timestamp):
     """Generate a key for Redis"""
@@ -55,36 +52,6 @@ class RedisKVIO(KVIO):
 
     return key_list
 
-  def getCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
-    """Retrieve the indexes of inserted cubes"""
-
-    index_store = self.getIndexStore(ch, resolution)
-    index_store_temp = index_store+'_temp'
-    
-    try:
-      if listoftimestamps:
-        self.client.sadd(index_store_temp, *zip(listoftimestamps, listofidxs))
-      else:
-        self.client.sadd(index_store_temp, *listofidxs)
-      ids_to_fetch = self.client.sdiff( index_store_temp, index_store )
-      self.client.delete(index_store_temp)
-    except Exception, e:
-      logger.error("Error retrieving cube indexes into the database. {}".format(e))
-      raise SpatialDBError("Error retrieving cube indexes into the database. {}".format(e))
-    
-    return list(ids_to_fetch)
-  
-  def putCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
-    """Add the listofidxs to the store"""
-    
-    try: 
-      if listoftimestamps:
-        self.client.sadd( self.getIndexStore(ch, resolution), *zip(listoftimestamps, listofidxs))
-      else:
-        self.client.sadd( self.getIndexStore(ch, resolution), *listofidxs)
-    except Exception, e:
-      logger.error("Error inserting cube indexes into the database. {}".format(e))
-      raise SpatialDBError("Error inserting cube indexes into the database. {}".format(e))
 
   def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
     """Retrieve a single cube from the database"""
@@ -100,6 +67,7 @@ class RedisKVIO(KVIO):
     else:
       return None
 
+
   def getCubes(self, ch, listofidxs, resolution, neariso=False, timestamp=None):
     """Retrieve multiple cubes from the database"""
     
@@ -111,7 +79,8 @@ class RedisKVIO(KVIO):
     
     for idx, row in zip(listofidxs, rows):
       yield ( idx, row )
-  
+
+
   def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
     """Retrieve multiple cubes from the database"""
     
@@ -123,7 +92,8 @@ class RedisKVIO(KVIO):
     
     for idx, timestamp, row in zip([idx]*len(listoftimestamps), listoftimestamps, rows):
       yield ( idx, timestamp, row )
- 
+
+
   def putCube(self, ch, zidx, resolution, cubestr, update=False, timestamp=None):
     """Store a single cube into the database"""
     
@@ -135,7 +105,8 @@ class RedisKVIO(KVIO):
     except Exception, e:
       logger.error("Error inserting cube into the database. {}".format(e))
       raise SpatialDBError("Error inserting cube into the database. {}".format(e))
-  
+
+
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False, timestamp=None):
     """Store multiple cubes into the database"""
     
