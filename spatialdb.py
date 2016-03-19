@@ -821,6 +821,89 @@ class SpatialDB:
     # all boxes in the indexes
     zidxs=[]
     for annid in annids:
+     zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
+
+    # convert to xyz coordinates
+    try:
+      xyzvals = np.array ( [ ndlib.MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
+    # if there's nothing in the chain, the array creation will fail
+    except:
+      return None, None
+
+    xmincube = np.amin(xyzvals[:,0]) 
+    ymincube = np.amin(xyzvals[:,1]) 
+    zmincube = np.amin(xyzvals[:,2]) 
+
+    xmaxcube = np.amax(xyzvals[:,0]) 
+    ymaxcube = np.amax(xyzvals[:,1]) 
+    zmaxcube = np.amax(xyzvals[:,2]) 
+
+    # intialize min/max values
+    [ xmin, ymin, zmin ] = self.datasetcfg.imagesz[effectiveres]
+    xmax = 0
+    ymax = 0
+    zmax = 0
+    
+    # must reinitialize the generator
+    zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
+    for zidx in zidxs:
+  
+      [ xcube, ycube, zcube ] = ndlib.MortonXYZ(zidx) 
+
+      # load the cube if you need it
+      if xcube == xmincube or ycube == ymincube or zcube == zmincube or xcube == xmaxcube or ycube or ymaxcube or zcube == zmaxcube:
+        cb = self.getCube(ch,zidx,effectiveres) 
+
+        for annid in annids:
+
+          # is it a min/max cube in any dimension
+          # data are in z,y,x
+          if xcube == xmincube:
+            xmin = min ( xmin, min ( np.where(cb.data == annid )[2] ))
+          if ycube == ymincube:
+            ymin = min ( ymin, min ( np.where(cb.data == annid )[1] ))
+          if zcube == zmincube:
+            zmin = min ( zmin, min ( np.where(cb.data == annid )[0] ))
+          if xcube == xmaxcube:
+            xmax = max ( xmax, max ( np.where(cb.data == annid )[2] ))
+          if ycube == ymaxcube:
+            ymax = max ( ymax, max ( np.where(cb.data == annid )[1] ))
+          if zcube == zmaxcube:
+            zmax = max ( zmax, max ( np.where(cb.data == annid )[0] ))
+
+    # convert to cube/scale coordinates
+    cubedim = self.datasetcfg.cubedim [ resolution ] 
+
+    xmin = (xmincube*cubedim[0] + xmin) * scaling
+    ymin = (ymincube*cubedim[1] + ymin) * scaling
+    zmin = (zmincube*cubedim[2] + zmin) * scaling
+    xmax = (xmaxcube*cubedim[0] + xmax + 1) * scaling
+    ymax = (ymaxcube*cubedim[1] + ymax + 1) * scaling
+    zmax = (zmaxcube*cubedim[2] + zmax + 1) * scaling
+
+    corner = [ xmin, ymin, zmin ]
+    dim = [ xmax-xmin, ymax-ymin, zmax-zmin ]
+
+    return (corner,dim)
+
+
+  def getBoundingCube ( self, ch, annids, res ):
+    """Return a corner and dimension of the bounding cuboid for an annotation using the index"""
+  
+    # get the size of the image and cube
+    resolution = int(res)
+
+    # determine the resolution for project information
+    if ch.getResolution() > resolution:
+      effectiveres = ch.getResolution() 
+      scaling = 2**(effectiveres-resolution)
+    else:
+      effectiveres = resolution
+      scaling=1
+
+    # all boxes in the indexes
+    zidxs=[]
+    for annid in annids:
       zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
     
     # convert to xyz coordinates
