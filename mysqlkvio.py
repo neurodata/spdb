@@ -57,25 +57,27 @@ class MySQLKVIO(KVIO):
 
   def startTxn ( self ):
     """Start a transaction.  Ensure database is in multi-statement mode."""
-
-    self.txncursor = self.conn.cursor()
-    sql = "START TRANSACTION"
-    self.txncursor.execute ( sql )
+    
+    pass
+    # self.txncursor = self.conn.cursor()
+    # sql = "START TRANSACTION"
+    # self.txncursor.execute ( sql )
 
   def commit ( self ):
     """Commit the transaction.  Moved out of del to make explicit.""" 
-    if self.txncursor:
-      self.conn.commit()
-      self.txncursor.close()
-      self.txncursor = None
+    pass
+    # if self.txncursor:
+      # self.conn.commit()
+      # self.txncursor.close()
+      # self.txncursor = None
 
   def rollback ( self ):
     """Rollback the transaction.  To be called on exceptions."""
-
-    if self.txncursor:
-      self.conn.rollback()
-      self.txncursor.close()
-      self.txncursor = None
+    pass
+    # if self.txncursor:
+      # self.conn.rollback()
+      # self.txncursor.close()
+      # self.txncursor = None
   
 
   def getChannelId(self, ch):
