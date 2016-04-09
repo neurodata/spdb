@@ -1020,6 +1020,21 @@ class SpatialDB:
 
     self.kvio.commit()
 
+  def writeBlazeCuboid(self, ch, corner, resolution, cuboiddata, timerange=None):
+    """Write a blaze cuboid to the database"""
+
+    # get the size of the image and cube
+    [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    
+    # Round to the nearest larger cube in all dimensions
+    start = [xstart, ystart, zstart] = map(div, corner, cubedim)
+    
+    # Generate the zindex for the BlazeCuboid
+    zidx = ndlib.XYZMorton(start)
+    
+    # insert the cuboid in the database
+    self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=False, timestamp=None)
+
 
   def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=None):
     """Write an arbitary size data to the database"""
@@ -1142,5 +1157,3 @@ class SpatialDB:
       raise
 
     self.kvio.commit()
-
-
