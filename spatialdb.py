@@ -1033,7 +1033,7 @@ class SpatialDB:
     zidx = ndlib.XYZMorton(start)
     
     # insert the cuboid in the database
-    self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=False, timestamp=None)
+    self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=True, timestamp=None)
 
 
   def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=None):
