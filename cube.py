@@ -134,8 +134,8 @@ class Cube:
   def getCube(cubedim, channel_type, datatype, timerange=None):
 
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
-      from anncube import AnnotateCube
-      return AnnotateCube(cubedim)
+      from anncube32 import AnnotateCube32
+      return AnnotateCube32(cubedim)
     elif channel_type in TIMESERIES_CHANNELS and timerange is not None:
       if datatype in DTYPE_uint8:
         from timecube8 import TimeCube8
