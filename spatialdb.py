@@ -89,9 +89,9 @@ class SpatialDB:
     else:
       # handle the cube format here and decompress the cube
       if self.NPZ:
-        cube.fromNPZ ( cubestr )
+        cube.fromNPZ(cubestr)
       else:
-        cube.fromBlosc ( cubestr )
+        cube.fromBlosc(cubestr)
 
     return cube
 
@@ -128,7 +128,7 @@ class SpatialDB:
   def putCube(self, ch, zidx, resolution, cube, timestamp=None, update=False):
     """ Store a cube in the annotation database """
     
-    # Handle the cube format here
+    # handle the cube format here
     if self.proj.getS3Backend() == S3_TRUE:
       if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
         self.kvindex.putCubeIndex(ch, resolution, [zidx], [timestamp])
@@ -144,23 +144,23 @@ class SpatialDB:
       self.kvio.putCube(ch, zidx, resolution, cube.toBlosc(), not cube.fromZeros(), timestamp=timestamp)
   
 
-  def getExceptions ( self, ch, zidx, resolution, annoid ):
+  def getExceptions(self, ch, zidx, resolution, annoid):
     """Load a cube from the annotation database"""
 
-    excstr = self.kvio.getExceptions ( ch, zidx, resolution, annoid )
+    excstr = self.kvio.getExceptions(ch, zidx, resolution, annoid)
     if excstr:
       if self.NPZ:
-        return np.load(cStringIO.StringIO ( zlib.decompress(excstr)))
+        return np.load(cStringIO.StringIO(zlib.decompress(excstr)))
       else:
         return blosc.unpack_array(excstr)
     else:
       return []
 
 
-  def updateExceptions ( self, ch, key, resolution, exid, exceptions, update=False ):
+  def updateExceptions(self, ch, key, resolution, exid, exceptions, update=False):
     """Merge new exceptions with existing exceptions"""
 
-    curexlist = self.getExceptions( ch, key, resolution, exid ) 
+    curexlist = self.getExceptions(ch, key, resolution, exid) 
 
     update = False
 
@@ -176,7 +176,7 @@ class SpatialDB:
     self.putExceptions ( ch, key, resolution, exid, exlist, update )
 
 
-  def putExceptions ( self, ch, key, resolution, exid, exceptions, update ):
+  def putExceptions(self, ch, key, resolution, exid, exceptions, update):
     """Package the object and transact with kvio"""
     
     exceptions = np.array ( exceptions, dtype=np.uint32 )
@@ -190,7 +190,7 @@ class SpatialDB:
       self.kvio.putExceptions(ch, key, resolution, exid, blosc.pack_array(exceptions), update)
 
 
-  def removeExceptions ( self, ch, key, resolution, entityid, exceptions ):
+  def removeExceptions(self, ch, key, resolution, entityid, exceptions):
     """Remove a list of exceptions. Should be done in a transaction"""
 
     curexlist = self.getExceptions(ch, key, resolution, entityid) 
@@ -205,13 +205,13 @@ class SpatialDB:
       self.putExceptions ( ch, key, resolution, exid, exlist, True )
 
 
-  def annotate ( self, ch, entityid, resolution, locations, conflictopt='O' ):
+  def annotate(self, ch, entityid, resolution, locations, conflictopt='O'):
     """Label the voxel locations or add as exceptions is the are already labeled."""
 
-    [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim [ resolution ] 
 
-    #  An item may exist across several cubes
-    #  Convert the locations into Morton order
+    # an item may exist across several cubes
+    # convert the locations into Morton order
 
     # dictionary with the index
     cubeidx = defaultdict(set)
@@ -522,7 +522,7 @@ class SpatialDB:
     return effcorner, effdim 
 
 
-  def cutout ( self, ch, corner, dim, resolution, timerange=None, zscaling=None, annoids=None ):
+  def cutout(self, ch, corner, dim, resolution, timerange=None, zscaling=None, annoids=None):
     """Extract a cube of arbitrary size. Need not be aligned."""
     
     # if cutout is below resolution, get a smaller cube and scaleup
@@ -679,7 +679,7 @@ class SpatialDB:
     return cube
 
 
-  def getVoxel ( self, ch, resolution, voxel ):
+  def getVoxel(self, ch, resolution, voxel):
     """Return the identifier at a voxel"""
     
     # check propagate status, if not propagated then change voxel co-ordinates accordinig to base resolution
@@ -715,7 +715,7 @@ class SpatialDB:
       return cube.getVoxel(xyzoffset)
 
 
-  def applyCubeExceptions ( self, ch, annoids, resolution, idx, cube ):
+  def applyCubeExceptions(self, ch, annoids, resolution, idx, cube):
     """Apply the expcetions to a specified cube and resolution"""
 
     # get the size of the image and cube
@@ -731,7 +731,7 @@ class SpatialDB:
         cube.data[e[2],e[1],e[0]]=annoid
 
   
-  def zoomVoxels ( self, voxels, resgap ):
+  def zoomVoxels(self, voxels, resgap):
     """Convert voxels from one resolution to another based 
        on a positive number of hierarcy levels.
        This is used by both exception and the voxels data argument."""
@@ -746,7 +746,7 @@ class SpatialDB:
     return newvoxels
 
 
-  def getLocations ( self, ch, entityid, res ):
+  def getLocations(self, ch, entityid, res):
     """Return the list of locations associated with an identifier"""
 
     # get the size of the image and cube
@@ -799,7 +799,7 @@ class SpatialDB:
     return voxlist
 
 
-  def getBoundingBox ( self, ch, annids, res ):
+  def getBoundingBox(self, ch, annids, res):
     """Return a corner and dimension of the bounding box for an annotation using the index"""
   
     # get the size of the image and cube
@@ -1036,7 +1036,7 @@ class SpatialDB:
     dim = cuboiddata.shape[::-1]
     
     # get the size of the image and cube
-    [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim [ resolution ] 
     
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
@@ -1050,7 +1050,7 @@ class SpatialDB:
     databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
     databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
 
-    incube = Cube.getCube ( cubedim, ch.getChannelType(), ch.getDataType() )
+    incube = Cube.getCube(cubedim, ch.getChannelType(), ch.getDataType())
     
     self.kvio.startTxn()
     
@@ -1073,6 +1073,7 @@ class SpatialDB:
       raise
 
     self.kvio.commit()
+
 
   def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
     """
@@ -1099,7 +1100,7 @@ class SpatialDB:
       dim = cuboiddata.shape[::-1][:-1]
 
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim[resolution]
 
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
@@ -1112,7 +1113,7 @@ class SpatialDB:
     
     if timerange == [0,0]:
       databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-      databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
+      databuffer[zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
     else:
       databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
       databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
