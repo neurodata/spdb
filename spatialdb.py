@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#RBTODO make everything work on zoomout -- just cutout and bounding box now
+
 import numpy as np
 import cStringIO
 import zlib
@@ -815,6 +817,12 @@ class SpatialDB:
     if ch.getResolution() > resolution:
       effectiveres = ch.getResolution() 
       scaling = 2**(effectiveres-resolution)
+
+    # if cutout is above resolution, get a large cube and scaledown
+    elif ch.getResolution() < resolution and ch.getPropagate() not in [PROPAGATED]:  
+      effectiveres = ch.getResolution() 
+      scaling = 2**(effectiveres-resolution)
+
     else:
       effectiveres = resolution
       scaling=1
@@ -829,6 +837,10 @@ class SpatialDB:
       xyzvals = np.array ( [ ndlib.MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
     # if there's nothing in the chain, the array creation will fail
     except:
+      return None, None
+
+    # the above will return a length zero array
+    if len(xyzvals)==0:
       return None, None
 
     xmincube = np.amin(xyzvals[:,0]) 
@@ -852,7 +864,7 @@ class SpatialDB:
       [ xcube, ycube, zcube ] = ndlib.MortonXYZ(zidx) 
 
       # load the cube if you need it
-      if xcube == xmincube or ycube == ymincube or zcube == zmincube or xcube == xmaxcube or ycube or ymaxcube or zcube == zmaxcube:
+      if xcube == xmincube or ycube == ymincube or zcube == zmincube or xcube == xmaxcube or ycube == ymaxcube or zcube == zmaxcube:
         cb = self.getCube(ch,zidx,effectiveres) 
 
         for annid in annids:
@@ -873,14 +885,14 @@ class SpatialDB:
             zmax = max ( zmax, max ( np.where(cb.data == annid )[0] ))
 
     # convert to cube/scale coordinates
-    cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ effectiveres ] 
 
-    xmin = (xmincube*cubedim[0] + xmin) * scaling
-    ymin = (ymincube*cubedim[1] + ymin) * scaling
-    zmin = (zmincube*cubedim[2] + zmin) * scaling
-    xmax = (xmaxcube*cubedim[0] + xmax + 1) * scaling
-    ymax = (ymaxcube*cubedim[1] + ymax + 1) * scaling
-    zmax = (zmaxcube*cubedim[2] + zmax + 1) * scaling
+    xmin = int((xmincube*cubedim[0] + xmin) * scaling)
+    ymin = int((ymincube*cubedim[1] + ymin) * scaling)
+    zmin = (zmincube*cubedim[2] + zmin) 
+    xmax = int((xmaxcube*cubedim[0] + xmax + 1) * scaling)
+    ymax = int((ymaxcube*cubedim[1] + ymax + 1) * scaling)
+    zmax = (zmaxcube*cubedim[2] + zmax + 1) 
 
     corner = [ xmin, ymin, zmin ]
     dim = [ xmax-xmin, ymax-ymin, zmax-zmin ]
