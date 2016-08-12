@@ -32,14 +32,13 @@ logger=logging.getLogger("neurodata")
 
 class Cube:
 
-  #  Express cubesize in [ x,y,z ]
-  def __init__(self, cubesize):
-    """Create empty array of cubesize"""
+  def __init__(self, cube_size):
+    """Create empty array of cubesize. Express cube_size in [x,y,z]"""
 
     # cubesize is in z,y,x for interactions with tile/image data
-    self.zdim, self.ydim, self.xdim = self.cubesize = [ cubesize[2],cubesize[1],cubesize[0] ]
+    self.zdim, self.ydim, self.xdim = self.cubesize = [cube_size[2], cube_size[1], cube_size[0]]
     # RB this next line is not typed and produces floats.  Cube needs to be created in the derived classes
-#    self.data = np.empty ( self.cubesize )
+    # self.data = np.empty ( self.cubesize )
 
 
   def addData ( self, other, index ):
@@ -65,17 +64,17 @@ class Cube:
   
   def trim ( self, xoffset, xsize, yoffset, ysize, zoffset, zsize ):
     """Trim off the excess data"""
-    self.data = self.data [ zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize ]
+    self.data = self.data[zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize]
 
-  def fromNPZ ( self, pandz ):
+  def fromNPZ ( self, compressed_data ):
     """Load the cube from a pickled and zipped blob"""
+    
     try:
-      self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( pandz[:] ) ) )
+      self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( compressed_data[:] ) ) )
       self.zdim, self.ydim, self.xdim = self.data.shape
-
     except:
-      logger.error ("Failed to decompress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to decompress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")
 
     self._newcube = False
 
@@ -84,12 +83,12 @@ class Cube:
     """Pickle and zip the object"""
     try:
       # Create the compressed cube
-      fileobj = cStringIO.StringIO ()
-      np.save ( fileobj, self.data )
+      fileobj = cStringIO.StringIO()
+      np.save (fileobj, self.data)
       return  zlib.compress (fileobj.getvalue())
     except:
-      logger.error ("Failed to compress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to compress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to compress database cube. Data integrity concern.")
  
   def toBlosc ( self ):
     """Pack the object"""
@@ -97,18 +96,18 @@ class Cube:
       # Create the compressed cube
       return blosc.pack_array(self.data) 
     except:
-      logger.error ("Failed to compress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to compress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to compress database cube. Data integrity concern.")
   
-  def fromBlosc ( self, pandz ):
+  def fromBlosc(self, compressed_data):
     """Load the cube from a pickled and zipped blob"""
+    
     try:
-      self.data = blosc.unpack_array(pandz[:])
+      self.data = blosc.unpack_array(compressed_data[:])
       self.zdim, self.ydim, self.xdim = self.data.shape
-
     except:
-      logger.error ("Failed to decompress database cube.  Data integrity concern.")
-      raise
+      logger.error("Failed to decompress database cube. Data integrity concern.")
+      raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")
 
     self._newcube = False
   
@@ -135,30 +134,32 @@ class Cube:
   def getCube(cubedim, channel_type, datatype, timerange=None):
 
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
-      return anncube.AnnotateCube (cubedim)
+      from anncube32 import AnnotateCube32
+      return AnnotateCube32(cubedim)
     elif channel_type in TIMESERIES_CHANNELS and timerange is not None:
       if datatype in DTYPE_uint8:
-        return timecube.TimeCube8(cubedim, timerange)
+        from timecube8 import TimeCube8
+        return TimeCube8(cubedim, timerange)
       elif datatype in DTYPE_uint16:
-        return timecube.TimeCube16(cubedim, timerange)
+        from timecube16 import TimeCube16 
+        return TimeCube16(cubedim, timerange)
       elif datatype in DTYPE_float32:
-        return timecube.TimeCubeFloat32(cubedim, timerange)
+        from timecubefloat32 import TimeCubeFloat32
+        return TimeCubeFloat32(cubedim, timerange)
     elif datatype in DTYPE_uint8:
-      return imagecube.ImageCube8 (cubedim)
+      from imagecube8 import ImageCube8
+      return ImageCube8(cubedim)
     elif datatype in DTYPE_uint16:
-      return imagecube.ImageCube16 (cubedim)
+      from imagecube16 import ImageCube16
+      return ImageCube16(cubedim)
     elif datatype in DTYPE_uint32:
-      return imagecube.ImageCube32 (cubedim)
+      from imagecube32 import ImageCube32
+      return ImageCube32(cubedim)
     elif datatype in DTYPE_uint64:
-      return imagecube.ImageCube64 (cubedim)
+      from imagecube64 import ImageCube64
+      return ImageCube64(cubedim)
     elif datatype in DTYPE_float32:
-      return imagecube.ImageCubeFloat32 (cubedim)
+      from imagecubefloat32 import ImageCubeFloat32
+      return ImageCubeFloat32(cubedim)
     else:
       return Cube(cubedim)
-
-
-# end cube
-
-import imagecube
-import anncube
-import timecube

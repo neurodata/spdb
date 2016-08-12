@@ -26,12 +26,11 @@ import logging
 logger=logging.getLogger("neurodata")
 
 
-class AnnotateCube(Cube):
+class AnnotateCube32(Cube):
   """AnnotateCube: manipulate the in-memory data representation of the 3-d cube of data that contains annotations"""
 
-  #  Express cubesize in [ x,y,z ]
   def __init__(self, cubesize):
-    """Create empty array of cubesize"""
+    """Create empty array of cubesize[x,y,z]"""
 
     # call the base class constructor
     Cube.__init__( self, cubesize )
@@ -39,16 +38,19 @@ class AnnotateCube(Cube):
     # variable that describes when a cube is created from zeros rather than loaded from another source
     self._newcube = False
 
+
   def getVoxel ( self, voxel ):
     """Return the value at the voxel specified as [x,y,z]"""
     return self.data [ voxel[2], voxel[1], voxel[0] ]
-  
+
+
   def fromZeros ( self ):
     """Determine if the cube was created from all zeros?"""
     if self._newcube == True:
       return True
     else: 
       return False
+
 
   def zeros ( self ):
     """Create a cube of all 0"""
@@ -82,10 +84,8 @@ class AnnotateCube(Cube):
     return exceptions, zeroed
 
 
-  #
-  # Create the specified slice (index) 
-  #
   def xyImage ( self ):
+    """Create the specified slice (index)"""
 
     zdim,ydim,xdim = self.data.shape
     imagemap = np.zeros ( [ ydim, xdim ], dtype=np.uint32 )
@@ -95,10 +95,9 @@ class AnnotateCube(Cube):
 
     return Image.frombuffer ( 'RGBA', (xdim,ydim), imagemap, 'raw', 'RGBA', 0, 1 )
 
-  #
-  # Create the specified slice (index)
-  #
+
   def xzImage ( self, scale ):
+    """Create the specified slice (index)"""
 
     zdim,ydim,xdim = self.data.shape
     imagemap = np.zeros ( [ zdim, xdim ], dtype=np.uint32 )
@@ -110,10 +109,8 @@ class AnnotateCube(Cube):
     return outimage.resize ( [xdim, int(zdim*scale)] )
 
 
-  #
-  # Create the specified slice (index) 
-  #
   def yzImage ( self, scale ):
+    """Create the specified slice (index)"""
 
     zdim,ydim,xdim = self.data.shape
     imagemap = np.zeros ( [ zdim, ydim ], dtype=np.uint32 )
@@ -166,139 +163,3 @@ class AnnotateCube(Cube):
     newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]/(2**factor), self.data.shape[2]/(2**factor)], dtype=np.uint32) 
     ndlib.zoomOutData_ctype ( self.data, newdata, int(factor) )
     self.data = newdata
-
-
-# end AnnotateCube
-
-class AnnotateCube64(Cube):
-
-  #  Express cubesize in [ x,y,z ]
-  def __init__(self, cubesize):
-    """Create empty array of cubesize"""
-
-    # call the base class constructor
-    Cube.__init__( self, cubesize )
-    self.data = np.zeros(self.cubesize, dtype=np.uint64)
-    # variable that describes when a cube is created from zeros rather than loaded from another source
-    self._newcube = False
-  # was the cube created from zeros?
-  
-  def fromZeros ( self ):
-    """Determine if the cube was created from all zeros?"""
-    if self._newcube == True:
-      return True
-    else: 
-      return False
-
-  # create an all zeros cube
-  def zeros ( self ):
-    """Create a cube of all 0"""
-    self._newcube = True
-    self.data = np.zeros (self.cubesize, dtype=np.uint64)
-
-
-  def shave ( self, annid, offset, locations ):
-    """Remove annotation by a list of locations"""
-
-    self.data , exceptions, zeroed = ndlib.shave_ctype ( self.data, annid, offset, np.array(locations, dtype=np.uint32))
-    return exceptions, zeroed
-  
-
-  #
-  # Create the specified slice (index) at filename
-  #
-  def xySlice ( self, fileobj ):
-
-    zdim,ydim,xdim = self.data.shape
-    imagemap = np.zeros ( [ ydim, xdim ], dtype=np.uint32 )
-
-    # false color redrawing of the region
-    ndlib.recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
-
-    outimage = Image.frombuffer ( 'RGBA', (xdim,ydim), imagemap, 'raw', 'RGBA', 0, 1 )
-    outimage.save ( fileobj, "PNG" )
-
-  #
-  # Create the specified slice (index) at filename
-  #
-  def xzSlice ( self, scale, fileobj ):
-
-    zdim,ydim,xdim = self.data.shape
-    imagemap = np.zeros ( [ zdim, xdim ], dtype=np.uint32 )
-
-    # false color redrawing of the region
-    ndlib.recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
-
-    outimage = Image.frombuffer ( 'RGBA', (xdim,zdim), imagemap, 'raw', 'RGBA', 0, 1 )
-    newimage = outimage.resize ( [xdim, int(zdim*scale)] )
-    newimage.save ( fileobj, "PNG" )
-
-  #
-  # Create the specified slice (index) at filename
-  #
-  def yzSlice ( self, scale, fileobj ):
-
-    zdim,ydim,xdim = self.data.shape
-    imagemap = np.zeros ( [ zdim, ydim ], dtype=np.uint32 )
-
-    # false color redrawing of the region
-    ndlib.recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
-
-    outimage = Image.frombuffer ( 'RGBA', (ydim,zdim), imagemap, 'raw', 'RGBA', 0, 1 )
-    newimage = outimage.resize ( [ydim, int(zdim*scale)] )
-    newimage.save ( fileobj, "PNG" )
-
-
-  def overwrite ( self, annodata ):
-    """Get's a dense voxel region and overwrites all non-zero values"""
-
-    vector_func = np.vectorize ( lambda a,b: b if b!=0 else a ) 
-    self.data = vector_func ( self.data, annodata ) 
-
-  def preserve ( self, annodata ):
-    """Get's a dense voxel region and overwrites all non-zero values"""
-
-    vector_func = np.vectorize ( lambda a,b: b if b!=0 and a==0 else a ) 
-    self.data = vector_func ( self.data, annodata ) 
-
-  def exception ( self, annodata ):
-    """Get's a dense voxel region and overwrites all non-zero values"""
-
-    # get all the exceptions
-    # not equal and both annotated
-    exdata = ((self.data-annodata)*self.data*annodata!=0) * annodata 
-
-    # then annotate to preserve 
-    vector_func = np.vectorize ( lambda a,b: b if b!=0 and a==0 else a ) 
-    self.data = vector_func ( self.data, annodata ) 
-
-    # return the list of exceptions ids and the exceptions
-    return exdata
-
-  def shaveDense ( self, annodata ):
-    """Remove the specified voxels from the annotation"""
-
-    # get all the exceptions that are equal to the annid in both datasets
-    shavedata = ((self.data-annodata)==0) * annodata 
-
-    # find all shave requests that don't match the dense data
-    exdata = (self.data != annodata) * annodata
-
-    # then shave 
-    vector_func = np.vectorize ( lambda a,b: 0 if b!=0 else a ) 
-    self.data = vector_func ( self.data, shavedata ) 
-
-    # return the list of exceptions ids and the exceptions
-    return exdata
-
-  # placeholder function move and optimize
-  def zoomData ( self, factor ):
-    """Cube data zoomed up"""
-
-    newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]*(2**factor), self.data.shape[2]*(2**factor)], dtype=np.uint63) 
-
-    ndlib.zoomData64_ctype ( self.data, newdata, int(factor) )
-
-    self.data = newdata
-
-# end AnnotateCube

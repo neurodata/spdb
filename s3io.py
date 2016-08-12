@@ -39,7 +39,10 @@ class S3IO:
     except Exception, e:
       logger.error("Cannot connect to S3 backend")
       raise SpatialDBError("Cannot connect to S3 backend")
-    
+  
+  def __del__(self):
+    """Close the connection to the S3 backend"""
+    pass
    # def generateKey(self, zidx, resolution):
     # """Generate key for the supercube"""
     

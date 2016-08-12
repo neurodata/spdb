@@ -4,12 +4,12 @@ Spatial Database Layer for ndstore
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 [![Docs](https://img.shields.io/badge/Docs-latest-brightgreen.svg)](http://docs.neurodata.io/ndstore/)
 
-Engines Support:
+Engines Supported:
 
-| Key-value Store   | Spatial Database  | RAMON   |
-| ----------------- | ----------------- | ------- |
-| MySQL             | Yes               | Yes     |
-| Cassandra         | Yes               | No      |
-| Riak              | No(Planned)       | No      |                
-| Amazon DynamoDB   | Yes               | No      |
-| Redis             | Yes               | No      |
+| Key-value Store   | Spatial Database  | RAMON   | Index Data  |
+| ----------------- | ----------------- | ------- | ----------- |
+| MySQL             | Yes               | Yes     | Yes         |
+| Cassandra         | Yes               | No      | No          |
+| Riak              | No(Planned)       | No      | No          |
+| Amazon DynamoDB   | Yes               | No      | No          |
+| Redis             | Yes               | No      | Yes         |

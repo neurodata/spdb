@@ -24,9 +24,13 @@ class KVIO:
   # __metaclass__ = ABCMeta
 
   def __init__ ( self, db ):
-    """Connect to the S3 backend"""
+    """Constructor for the class"""
     self.db = db
-    
+  
+  def __del__(self, db):
+    """Destructor for the class"""
+    self.close()
+
   def close ( self ):
     """Close the connection"""
     pass
@@ -43,16 +47,6 @@ class KVIO:
     """Rollback the transaction. To be called on exceptions."""
     pass
   
-  @abstractmethod
-  def getCubeIndex(self, ch, resolution, listofidxs):
-    """Return the index list of inserted cubes"""
-    return NotImplemented
-  
-  @abstractmethod
-  def putCubeIndex(self, ch, resolution, listofidxs):
-    """Insert the index list of fetched cubes"""
-    return NotImplemented
-
   @abstractmethod
   def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
     """Retrieve a single cube from the database"""
@@ -84,7 +78,7 @@ class KVIO:
     
     if db.KVENGINE == MYSQL:
       from mysqlkvio import MySQLKVIO
-      db.NPZ = True
+      db.NPZ = False
       return MySQLKVIO(db)
     elif db.KVENGINE == CASSANDRA:
       from casskvio import CassandraKVIO
