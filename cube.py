@@ -143,6 +143,9 @@ class Cube:
       elif datatype in DTYPE_uint16:
         from timecube16 import TimeCube16 
         return TimeCube16(cubedim, timerange)
+      elif datatype in DTYPE_uint32:
+        from timecube32 import TimeCube32 
+        return TimeCube32(cubedim, timerange)
       elif datatype in DTYPE_float32:
         from timecubefloat32 import TimeCubeFloat32
         return TimeCubeFloat32(cubedim, timerange)
