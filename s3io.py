@@ -36,6 +36,7 @@ class S3IO:
     try:
       self.db = db
       self.client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+      self.project_name = self.db.proj.getProjectName()
     except Exception, e:
       logger.error("Cannot connect to S3 backend")
       raise SpatialDBError("Cannot connect to S3 backend")
@@ -43,20 +44,7 @@ class S3IO:
   def __del__(self):
     """Close the connection to the S3 backend"""
     pass
-   # def generateKey(self, zidx, resolution):
-    # """Generate key for the supercube"""
-    
-    # # Calculate which super zindex will this cube be under
-    # # Hash the super zindex to get the corresponding key for the s3 object
-    # hashm = hashlib.md5()
-    # hashm.update('{}_{}'.format(zidx, resolution))
-    # print zidx, hashm.hexdigest()
-    # return hashm.hexdigest()
-
-  # def generateBucketName(self, ch):
-    # """Generate the Bucket Name for the supercube"""
-
-    # return '{}_{}'.format(self.db.proj.getProjectName(), ch.getChannelName())
+   
   
   def generateSuperZindex(self, zidx, resolution):
     """Generate super zindex from a given zindex"""
@@ -109,7 +97,7 @@ class S3IO:
     
     super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx)).get('Body').read()
+      super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx)).get('Body').read()
       return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
@@ -125,7 +113,7 @@ class S3IO:
    
     for super_zidx in super_listofidxs:
       try:
-        super_cube = self.client.get_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx)).get('Body').read()
+        super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx)).get('Body').read()
         yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
       except botocore.exceptions.DataNotFoundError as e:
         logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
@@ -150,7 +138,7 @@ class S3IO:
     
     # super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      self.client.put_object(Bucket=generateS3BucketName(self.db.proj.getProjectName()), Key=generateS3Key(ch.getChannelName(), resolution, super_zidx), Body=cubestr)
+      self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx), Body=cubestr)
     except botocore.exceptions.EndpointConnectionError as e:
       import pdb; pdb.set_trace()
       logger.error("Cannot write s3 object. {}".format(e))
