@@ -138,10 +138,9 @@ class S3IO:
     
     # super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx), Body=cubestr)
+      response = self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx), Body=cubestr)
     except botocore.exceptions.EndpointConnectionError as e:
-      import pdb; pdb.set_trace()
       logger.error("Cannot write s3 object. {}".format(e))
       raise SpatialDBError("Cannot write s3 object. {}".format(e))
     
-    return
+    return response
