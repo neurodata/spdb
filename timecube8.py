@@ -14,46 +14,23 @@
 
 import numpy as np
 from PIL import Image
-
-from cube import Cube
-
-from spatialdberror import SpatialDBError
-import logging
-logger=logging.getLogger("neurodata")
+from timecube import TimeCube
 
 
-class TimeCube8(Cube):
+class TimeCube8(TimeCube):
 
-  def __init__(self, cubesize=[128,128,16], timerange=[0,0]):
+  def __init__(self, cube_size=[128,128,16], time_range=[0,0]):
     """Create empty array of cubesize"""
 
     # call the base class constructor
-    Cube.__init__(self,cubesize)
+    super(TimeCube8, self).__init__(cube_size, time_range)
     # note that this is self.cubesize (which is transposed) in Cube
-    self.timerange = timerange
-    self.data = np.zeros ([self.timerange[1]-self.timerange[0]]+self.cubesize, dtype=np.uint8)
-
-    # variable that describes when a cube is created from zeros rather than loaded from another source
-    self._newcube = False
-
-  def addData(self, other, index, time):
-    """Add data to a larger cube from a smaller cube"""
-
-    xoffset = index[0]*other.xdim
-    yoffset = index[1]*other.ydim     
-    zoffset = index[2]*other.zdim
-    
-    self.data [ time-self.timerange[0], zoffset:zoffset+other.zdim, yoffset:yoffset+other.ydim, xoffset:xoffset+other.xdim]\
-        = other.data [:,:,:]
-
-  def trim(self, xoffset, xsize, yoffset, ysize, zoffset, zsize):
-    """Trim off the excess data"""
-    self.data = self.data[:, zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize]
+    self.data = np.zeros ([self.time_range[1]-self.time_range[0]]+self.cubesize, dtype=np.uint8)
 
   def zeros(self):
     """Create a cube of all zeros"""
-    self._newcube = True
-    self.data = np.zeros(self.cubesize, np.uint8)
+    super(TimeCube16, self).zeros()
+    self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint8)
 
   def xyImage ( self ):
     """Create xy slice"""

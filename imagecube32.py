@@ -14,36 +14,22 @@
 
 import numpy as np
 from PIL import Image
-
 from cube import Cube
-
-from spatialdberror import SpatialDBError
-import logging
-logger=logging.getLogger("neurodata")
 
 
 class ImageCube32(Cube):
 
-  def __init__(self, cubesize=[64,64,64]):
+  def __init__(self, cube_size=[64,64,64]):
     """Create empty array of cubesize"""
 
     # call the base class constructor
-    Cube.__init__(self,cubesize)
+    super(ImageCube32, self).__init__(cube_size)
     # note that this is self.cubesize (which is transposed) in Cube
     self.data = np.zeros ( self.cubesize, dtype=np.uint32 )
-    # variable that describes when a cube is created from zeros rather than loaded from another source
-    self._newcube = False
-
-  def fromZeros ( self ):
-    """Determine if the cube was created from all zeros"""
-    if self._newcube == True:
-      return True
-    else: 
-      return False
 
   def zeros ( self ):
     """Create a cube of all 0"""
-    self._newcube = True
+    super(ImageCube32, self).zeros()
     self.data = np.zeros ( self.cubesize, dtype=np.uint32 )
 
   def xyImage ( self ):

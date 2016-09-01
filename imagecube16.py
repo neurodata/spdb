@@ -14,39 +14,24 @@
 
 import numpy as np
 from PIL import Image
-
 from cube import Cube
 
-from spatialdberror import SpatialDBError
-import logging
-logger=logging.getLogger("neurodata")
 
 class ImageCube16(Cube):
 
   # Constructor 
-  def __init__(self, cubesize=[64,64,64]):
+  def __init__(self, cube_size=[64,64,64]):
     """Create empty array of cubesize"""
 
     # call the base class constructor
-    Cube.__init__(self,cubesize)
+    super(ImageCube16, self).__init__(cube_size)
     # note that this is self.cubesize (which is transposed) in Cube
     self.data = np.zeros ( self.cubesize, dtype=np.uint16 )
 
-    # variable that describes when a cube is created from zeros
-    #  rather than loaded from another source
-    self._newcube = False
-
-  def fromZeros ( self ):
-    """Determine if the cube was created from all zeros?"""
-    if self._newcube == True:
-      return True
-    else: 
-      return False
-
   def zeros ( self ):
     """Create a cube of all 0"""
-    self._newcube = True
-    self.data = np.zeros ( self.cubesize, dtype=np.uint16 )
+    super(ImageCube16, self).zeros()
+    self.data = np.zeros(self.cubesize, dtype=np.uint16)
 
   def xyImage ( self ):
     """Create xy slice"""
@@ -58,7 +43,6 @@ class ImageCube16(Cube):
       outimage = Image.frombuffer ( 'I;16', (xdim,ydim), self.data[0,:,:].flatten(), 'raw', 'I;16', 0, 1)
       return outimage.point(lambda i:i*(1./256)).convert('L')
 
-
   def xzImage ( self, zscale ):
     """Create xz slice"""
     zdim,ydim,xdim = self.data.shape
@@ -69,7 +53,6 @@ class ImageCube16(Cube):
       outimage = outimage.point(lambda i:i*(1./256)).convert('L')
     
     return  outimage.resize ( [xdim, int(zdim*zscale)] )
-
 
   def yzImage ( self, zscale ):
     """Create yz slice"""
