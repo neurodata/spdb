@@ -95,6 +95,7 @@ class S3IO:
   def getCube(self, ch, zidx, timestamp, resolution, update=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
     
+    # KL TODO replace this by ndingest cuboidbucket
     super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
       super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx)).get('Body').read()
@@ -107,6 +108,7 @@ class S3IO:
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     
+    # KL TODO replace this by ndingest cuboidbucket
     super_listofidxs = Set([])
     for zidx in listofidxs:
       super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
@@ -127,16 +129,17 @@ class S3IO:
 
   def getTimeCubes(self, ch, listofidxsidx, listoftimestamps, resolution):
     """Retrieve multiple cubes from the database"""
-    return
+    return NotImplemented
  
   def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
     """Store multiple cubes into the database"""
-    return
+    return NotImplemented
   
   def putCube ( self, ch, resolution, super_zidx, cubestr, timestamp=None, update=False ):
     """Store a cube from the annotation database"""
     
     # super_zidx = self.generateSuperZindex(zidx, resolution)
+    # KL TODO replace this by ndingest cuboidbucket
     try:
       response = self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx), Body=cubestr)
     except botocore.exceptions.EndpointConnectionError as e:
