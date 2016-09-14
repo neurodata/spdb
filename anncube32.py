@@ -18,7 +18,7 @@ import cStringIO
 from PIL import Image
 import zlib
 
-import ndlib
+from ndctypelib import *
 from cube import Cube
 
 from spatialdberror import SpatialDBError 
@@ -71,7 +71,7 @@ class AnnotateCube32(Cube):
     """Add annotation by a list of locations"""
 
     try:
-      self.data, exceptions = ndlib.annotate_ctype( self.data, annid, offset, np.array(locations, dtype=np.uint32), conflictopt )
+      self.data, exceptions = annotate_ctype( self.data, annid, offset, np.array(locations, dtype=np.uint32), conflictopt )
       return exceptions
     except IndexError, e:
       raise SpatialDBError ("Voxel list includes out of bounds request.")
@@ -80,7 +80,7 @@ class AnnotateCube32(Cube):
   def shave ( self, annid, offset, locations ):
     """Remove annotation by a list of locations"""
 
-    self.data , exceptions, zeroed = ndlib.shave_ctype ( self.data, annid, offset, np.array(locations, dtype=np.uint32))
+    self.data , exceptions, zeroed = shave_ctype ( self.data, annid, offset, np.array(locations, dtype=np.uint32))
     return exceptions, zeroed
 
 
@@ -91,7 +91,7 @@ class AnnotateCube32(Cube):
     imagemap = np.zeros ( [ ydim, xdim ], dtype=np.uint32 )
 
     # false color redrawing of the region
-    imagemap = ndlib.recolor_ctype ( self.data.reshape( (imagemap.shape[0], imagemap.shape[1]) ), imagemap )
+    imagemap = recolor_ctype ( self.data.reshape( (imagemap.shape[0], imagemap.shape[1]) ), imagemap )
 
     return Image.frombuffer ( 'RGBA', (xdim,ydim), imagemap, 'raw', 'RGBA', 0, 1 )
 
@@ -103,7 +103,7 @@ class AnnotateCube32(Cube):
     imagemap = np.zeros ( [ zdim, xdim ], dtype=np.uint32 )
 
     # false color redrawing of the region
-    imagemap = ndlib.recolor_ctype ( self.data.reshape( (imagemap.shape[0], imagemap.shape[1]) ), imagemap )
+    imagemap = recolor_ctype ( self.data.reshape( (imagemap.shape[0], imagemap.shape[1]) ), imagemap )
 
     outimage = Image.frombuffer ( 'RGBA', (xdim,zdim), imagemap, 'raw', 'RGBA', 0, 1 )
     return outimage.resize ( [xdim, int(zdim*scale)] )
@@ -116,7 +116,7 @@ class AnnotateCube32(Cube):
     imagemap = np.zeros ( [ zdim, ydim ], dtype=np.uint32 )
 
     # false color redrawing of the region
-    imagemap = ndlib.recolor_ctype ( self.data.reshape( (imagemap.shape[0], imagemap.shape[1]) ), imagemap )
+    imagemap = recolor_ctype ( self.data.reshape( (imagemap.shape[0], imagemap.shape[1]) ), imagemap )
 
     outimage = Image.frombuffer ( 'RGBA', (ydim,zdim), imagemap, 'raw', 'RGBA', 0, 1 )
     return  outimage.resize ( [ydim, int(zdim*scale)] )
@@ -124,14 +124,14 @@ class AnnotateCube32(Cube):
 
   def preserve ( self, annodata ):
     """Get's a dense voxel region and overwrites all non-zero values"""
-    self.data = ndlib.exceptionDense_ctype ( self.data, annodata )
+    self.data = exceptionDense_ctype ( self.data, annodata )
 
   def exception ( self, annodata ):
     """Get's a dense voxel region and overwrites all non-zero values"""
 
     # get all the exceptions not equal and both annotated
     exdata = ((self.data-annodata)*self.data*annodata!=0) * annodata 
-    self.data = ndlib.exceptionDense_ctype ( self.data, annodata )
+    self.data = exceptionDense_ctype ( self.data, annodata )
 
     # return the list of exceptions ids and the exceptions
     return exdata
@@ -144,7 +144,7 @@ class AnnotateCube32(Cube):
 
     # find all shave requests that don't match the dense data
     exdata = (self.data != annodata) * annodata
-    self.data = ndlib.shaveDense_ctype ( self.data, shavedata )
+    self.data = shaveDense_ctype ( self.data, shavedata )
 
     return exdata
 
@@ -153,7 +153,7 @@ class AnnotateCube32(Cube):
     """ Cube data zoomed in """
 
     newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]*(2**factor), self.data.shape[2]*(2**factor)], dtype=np.uint32) 
-    ndlib.zoomInData_ctype_OMP ( self.data, newdata, int(factor) )
+    zoomInData_ctype_OMP ( self.data, newdata, int(factor) )
     self.data = newdata
 
   
@@ -161,5 +161,5 @@ class AnnotateCube32(Cube):
     """ Cube data zoomed out """
 
     newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]/(2**factor), self.data.shape[2]/(2**factor)], dtype=np.uint32) 
-    ndlib.zoomOutData_ctype ( self.data, newdata, int(factor) )
+    zoomOutData_ctype ( self.data, newdata, int(factor) )
     self.data = newdata

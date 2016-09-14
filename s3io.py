@@ -20,7 +20,7 @@ from sets import Set
 from operator import add, sub, mul, div, mod
 
 from django.conf import settings
-import ndlib
+from ndctypelib import XYZMorton, MortonXYZ
 from s3util import generateS3BucketName, generateS3Key
 
 from spatialdberror import SpatialDBError
@@ -55,11 +55,11 @@ class S3IO:
     [xsupercubedim, ysupercubedim, zsupercubedim] = super_cubedim = self.db.proj.datasetcfg.getSuperCubeDims()[resolution]
     
     # super_cubedim = map(mul, cubedim, SUPERCUBESIZE)
-    [x, y, z] = ndlib.MortonXYZ(zidx)
-    corner = map(mul, ndlib.MortonXYZ(zidx), cubedim)
+    [x, y, z] = MortonXYZ(zidx)
+    corner = map(mul, MortonXYZ(zidx), cubedim)
     [x,y,z] = map(div, corner, super_cubedim)
-    # print zidx, corner, [x,y,z], ndlib.XYZMorton([x,y,z])
-    return ndlib.XYZMorton([x,y,z])
+    # print zidx, corner, [x,y,z], XYZMorton([x,y,z])
+    return XYZMorton([x,y,z])
 
   def breakCubes(self, super_zidx, resolution, super_cube):
     """Breaking the supercube into cubes"""
@@ -73,14 +73,14 @@ class S3IO:
     
     # Cube dimensions
     cubedim = self.db.datasetcfg.cubedim[resolution]
-    [x,y,z] = ndlib.MortonXYZ(super_zidx)
+    [x,y,z] = MortonXYZ(super_zidx)
     # start = map(mul, cubedim, [x,y,z])
     start = map(mul, [x,y,z], self.db.datasetcfg.getSuperCubeSize())
     
     for z in range(znumcubes):
       for y in range(ynumcubes):
         for x in range(xnumcubes):
-          zidx = ndlib.XYZMorton(map(add, start, [x,y,z]))
+          zidx = XYZMorton(map(add, start, [x,y,z]))
 
           # Parameters in the cube slab
           index = map(mul, cubedim, [x,y,z])

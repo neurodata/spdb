@@ -30,7 +30,8 @@ from cube import Cube
 import s3io
 from kvio import KVIO
 from kvindex import KVIndex
-import ndlib
+# from ndlib.ndlib import *
+from ndctypelib import *
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
 
 from spatialdberror import SpatialDBError
@@ -167,10 +168,10 @@ class SpatialDB:
     update = False
 
     if curexlist!=[]:
-      oldexlist = [ ndlib.XYZMorton ( trpl ) for trpl in curexlist ]
-      newexlist = [ ndlib.XYZMorton ( trpl ) for trpl in exceptions ]
+      oldexlist = [ XYZMorton ( trpl ) for trpl in curexlist ]
+      newexlist = [ XYZMorton ( trpl ) for trpl in exceptions ]
       exlist = set(newexlist + oldexlist)
-      exlist = [ ndlib.MortonXYZ ( zidx ) for zidx in exlist ]
+      exlist = [ MortonXYZ ( zidx ) for zidx in exlist ]
       update = True
     else:
       exlist = exceptions
@@ -199,10 +200,10 @@ class SpatialDB:
 
     if curexlist != []:
 
-      oldexlist = set([ ndlib.XYZMorton ( trpl ) for trpl in curexlist ])
-      newexlist = set([ ndlib.XYZMorton ( trpl ) for trpl in exceptions ])
+      oldexlist = set([ XYZMorton ( trpl ) for trpl in curexlist ])
+      newexlist = set([ XYZMorton ( trpl ) for trpl in exceptions ])
       exlist = oldexlist-newexlist
-      exlist = [ ndlib.MortonXYZ ( zidx ) for zidx in exlist ]
+      exlist = [ MortonXYZ ( zidx ) for zidx in exlist ]
 
       self.putExceptions ( ch, key, resolution, exid, exlist, True )
 
@@ -217,10 +218,10 @@ class SpatialDB:
 
     # dictionary with the index
     cubeidx = defaultdict(set)
-    cubelocs = ndlib.locate_ctype ( np.array(locations, dtype=np.uint32), cubedim )
+    cubelocs = locate_ctype ( np.array(locations, dtype=np.uint32), cubedim )
 
     # sort the arrary, by cubeloc
-    cubelocs = ndlib.quicksort ( cubelocs )
+    cubelocs = quicksort ( cubelocs )
     #cubelocs2.view('u4,u4,u4,u4').sort(order=['f0'], axis=0)
 
     # get the nonzero element offsets 
@@ -240,7 +241,7 @@ class SpatialDB:
       cube = self.getCube ( ch, key, resolution, update=True )
 
       # get a voxel offset for the cube
-      cubeoff = ndlib.MortonXYZ( key )
+      cubeoff = MortonXYZ( key )
       offset = np.asarray([cubeoff[0]*cubedim[0], cubeoff[1]*cubedim[1], cubeoff[2]*cubedim[2]], dtype=np.uint32)
 
       # add the items
@@ -271,10 +272,10 @@ class SpatialDB:
     cubeidx = defaultdict(set)
 
     # convert voxels z coordinate
-    cubelocs = ndlib.locate_ctype ( np.array(locations, dtype=np.uint32), cubedim )
+    cubelocs = locate_ctype ( np.array(locations, dtype=np.uint32), cubedim )
 
     # sort the arrary, by cubeloc
-    cubelocs = ndlib.quicksort ( cubelocs )
+    cubelocs = quicksort ( cubelocs )
     #cubelocs.view('u4,u4,u4,u4').sort(order=['f0'], axis=0)
 
     # get the nonzero element offsets 
@@ -296,7 +297,7 @@ class SpatialDB:
         cube = self.getCube (ch, key, resolution, update=True)
 
         # get a voxel offset for the cube
-        cubeoff = ndlib.MortonXYZ(key)
+        cubeoff = MortonXYZ(key)
         #cubeoff2 = zindex.MortonXYZ(key)
         offset = np.asarray( [cubeoff[0]*cubedim[0],cubeoff[1]*cubedim[1],cubeoff[2]*cubedim[2]], dtype=np.uint32 )
 
@@ -354,7 +355,7 @@ class SpatialDB:
         for y in range(ynumcubes):
           for x in range(xnumcubes):
 
-            key = ndlib.XYZMorton ([x+xstart,y+ystart,z+zstart])
+            key = XYZMorton ([x+xstart,y+ystart,z+zstart])
             cube = self.getCube (ch, key, resolution, update=True)
             
             if conflictopt == 'O':
@@ -407,7 +408,7 @@ class SpatialDB:
   def annotateEntityDense ( self, ch, entityid, corner, resolution, annodata, conflictopt ):
     """Relabel all nonzero pixels to annotation id and call annotateDense"""
 
-    annodata = ndlib.annotateEntityDense_ctype ( annodata, entityid )
+    annodata = annotateEntityDense_ctype ( annodata, entityid )
     return self.annotateDense ( ch, corner, resolution, annodata, conflictopt )
 
   
@@ -447,7 +448,7 @@ class SpatialDB:
         for y in range(ynumcubes):
           for x in range(xnumcubes):
 
-            key = ndlib.XYZMorton ([x+xstart,y+ystart,z+zstart])
+            key = XYZMorton ([x+xstart,y+ystart,z+zstart])
             cube = self.getCube(ch, key, resolution, update=True)
 
             exdata = cube.shaveDense ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
@@ -575,14 +576,14 @@ class SpatialDB:
     for z in range ( znumcubes ):
       for y in range ( ynumcubes ):
         for x in range ( xnumcubes ):
-          mortonidx = ndlib.XYZMorton ( [x+xstart, y+ystart, z+zstart] )
+          mortonidx = XYZMorton ( [x+xstart, y+ystart, z+zstart] )
           listofidxs.append ( mortonidx )
 
     # sort the indexes in morton order
     listofidxs.sort()
     
     # xyz offset stored for later use
-    lowxyz = ndlib.MortonXYZ ( listofidxs[0] )
+    lowxyz = MortonXYZ ( listofidxs[0] )
     
     self.kvio.startTxn()
 
@@ -597,7 +598,7 @@ class SpatialDB:
           for idx, timestamp, datastring in cuboids:
 
             # add the query result cube to the bigger cube
-            curxyz = ndlib.MortonXYZ(int(idx))
+            curxyz = MortonXYZ(int(idx))
             offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
 
             if self.NPZ:
@@ -618,7 +619,7 @@ class SpatialDB:
         for idx, datastring in cuboids:
 
           # add the query result cube to the bigger cube
-          curxyz = ndlib.MortonXYZ(int(idx))
+          curxyz = MortonXYZ(int(idx))
           offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
           
           if self.NPZ:
@@ -629,7 +630,7 @@ class SpatialDB:
 
           # apply exceptions if it's an annotation project
           if annoids!= None and ch.getChannelType() in ANNOTATION_CHANNELS:
-            incube.data = ndlib.filter_ctype_OMP ( incube.data, annoids )
+            incube.data = filter_ctype_OMP ( incube.data, annoids )
             if ch.getExceptions() == EXCEPTION_TRUE:
               self.applyCubeExceptions ( ch, annoids, effresolution, idx, incube )
 
@@ -707,7 +708,7 @@ class SpatialDB:
     xyzoffset = map(mod, voxel, cubedim)
     #xyzcube = [ voxel[0]/xcubedim, voxel[1]/ycubedim, voxel[2]/zcubedim ]
     #xyzoffset =[ voxel[0]%xcubedim, voxel[1]%ycubedim, voxel[2]%zcubedim ]
-    key = ndlib.XYZMorton ( xyzcube )
+    key = XYZMorton ( xyzcube )
 
     cube = self.getCube(ch, key, resolution)
 
@@ -723,7 +724,7 @@ class SpatialDB:
     # get the size of the image and cube
     [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
   
-    (x,y,z) = ndlib.MortonXYZ ( idx )
+    (x,y,z) = MortonXYZ ( idx )
 
     # for the target ids
     for annoid in annoids:
@@ -779,7 +780,7 @@ class SpatialDB:
       voxels = np.array(zip(offsets[2], offsets[1], offsets[0]), dtype=np.uint32)
 
       # Get cube offset information
-      [x,y,z] = ndlib.MortonXYZ(zidx)
+      [x,y,z] = MortonXYZ(zidx)
       xoffset = x * self.datasetcfg.cubedim[resolution][0] + self.datasetcfg.offset[resolution][0] 
       yoffset = y * self.datasetcfg.cubedim[resolution][1] + self.datasetcfg.offset[resolution][1]
       zoffset = z * self.datasetcfg.cubedim[resolution][2] + self.datasetcfg.offset[resolution][2]
@@ -828,7 +829,7 @@ class SpatialDB:
 
     # convert to xyz coordinates
     try:
-      xyzvals = np.array ( [ ndlib.MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
+      xyzvals = np.array ( [ MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
     # if there's nothing in the chain, the array creation will fail
     except:
       return None, None
@@ -855,7 +856,7 @@ class SpatialDB:
     zidxs = itertools.chain(zidxs,self.annoIdx.getIndex(ch, annid, effectiveres))
     for zidx in zidxs:
   
-      [ xcube, ycube, zcube ] = ndlib.MortonXYZ(zidx) 
+      [ xcube, ycube, zcube ] = MortonXYZ(zidx) 
 
       # load the cube if you need it
       if xcube == xmincube or ycube == ymincube or zcube == zmincube or xcube == xmaxcube or ycube == ymaxcube or zcube == zmaxcube:
@@ -915,7 +916,7 @@ class SpatialDB:
     
     # convert to xyz coordinates
     try:
-      xyzvals = np.array ( [ ndlib.MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
+      xyzvals = np.array ( [ MortonXYZ(zidx) for zidx in zidxs ], dtype=np.uint32 )
     # if there's nothing in the chain, the array creation will fail
     except:
       return None, None
@@ -956,15 +957,15 @@ class SpatialDB:
       # get the cube and mask out the non annoid values
       cb = self.getCube(ch,zidx,effectiveres) 
       if not remapid:
-        cb.data = ndlib.filter_ctype_OMP ( cb.data, dataids )
+        cb.data = filter_ctype_OMP ( cb.data, dataids )
       else: 
-        cb.data = ndlib.filter_ctype_OMP ( cb.data, dataids )
+        cb.data = filter_ctype_OMP ( cb.data, dataids )
         # KL TODO
         vec_func = np.vectorize ( lambda x: np.uint32(remapid) if x != 0 else np.uint32(0) ) 
         cb.data = vec_func ( cb.data )
 
       # zoom the data if not at the right resolution and translate the zindex to the upper resolution
-      (xoff,yoff,zoff) = ndlib.MortonXYZ ( zidx )
+      (xoff,yoff,zoff) = MortonXYZ ( zidx )
       offset = (xoff*xcubedim, yoff*ycubedim, zoff*zcubedim)
 
       # if we're zooming, so be it
@@ -1035,7 +1036,7 @@ class SpatialDB:
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
     
     # Generate the zindex for the BlazeCuboid
-    zidx = ndlib.XYZMorton(start)
+    zidx = XYZMorton(start)
     
     # insert the cuboid in the database
     self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=True, timestamp=None)
@@ -1074,7 +1075,7 @@ class SpatialDB:
         for y in range(ynumcubes):
           for x in range(xnumcubes):
 
-            listofidxs.append(ndlib.XYZMorton ([x+xstart,y+ystart,z+zstart]))
+            listofidxs.append(XYZMorton ([x+xstart,y+ystart,z+zstart]))
             incube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ]
             listofcubes.append(incube.toBlosc())
 
@@ -1139,7 +1140,7 @@ class SpatialDB:
           for y in range(ynumcubes):
             for x in range(xnumcubes):
 
-              key = ndlib.XYZMorton ([x+xstart,y+ystart,z+zstart])
+              key = XYZMorton ([x+xstart,y+ystart,z+zstart])
               cube = self.getCube (ch, key, resolution, update=True)
               # overwrite the cube
               cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
@@ -1151,7 +1152,7 @@ class SpatialDB:
             for x in range(xnumcubes):
               for timestamp in range(timerange[0], timerange[1], 1):
 
-                zidx = ndlib.XYZMorton([x+xstart,y+ystart,z+zstart])
+                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
                 cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
                 # overwrite the cube
                 cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])

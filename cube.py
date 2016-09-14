@@ -17,7 +17,7 @@ import zlib
 import cStringIO
 import blosc
 from abc import abstractmethod
-import ndlib
+from ndctypelib import  overwriteDense_ctype
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, DTYPE_uint8, DTYPE_uint16, DTYPE_uint32, DTYPE_uint64, DTYPE_float32
 from spatialdberror import SpatialDBError
 import logging
@@ -130,7 +130,7 @@ class Cube(object):
       logger.error("Conflicting data types for overwrite")
       raise SpatialDBError ("Conflicting data types for overwrite")
 
-    self.data = ndlib.overwriteDense_ctype(self.data, write_data)
+    self.data = overwriteDense_ctype(self.data, write_data)
   
   def isNotZeros(self):
     """Check if the cube has any data"""

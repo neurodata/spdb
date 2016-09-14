@@ -18,7 +18,7 @@ import cStringIO
 from PIL import Image
 import zlib
 
-import ndlib
+from ndctypelib import *
 from cube import Cube
 
 from spatialdberror import SpatialDBError 
@@ -55,7 +55,7 @@ class AnnotateCube64(Cube):
   def shave ( self, annid, offset, locations ):
     """Remove annotation by a list of locations"""
 
-    self.data , exceptions, zeroed = ndlib.shave_ctype ( self.data, annid, offset, np.array(locations, dtype=np.uint32))
+    self.data , exceptions, zeroed = shave_ctype ( self.data, annid, offset, np.array(locations, dtype=np.uint32))
     return exceptions, zeroed
   
 
@@ -66,7 +66,7 @@ class AnnotateCube64(Cube):
     imagemap = np.zeros ( [ ydim, xdim ], dtype=np.uint32 )
 
     # false color redrawing of the region
-    ndlib.recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
+    recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
 
     outimage = Image.frombuffer ( 'RGBA', (xdim,ydim), imagemap, 'raw', 'RGBA', 0, 1 )
     outimage.save ( fileobj, "PNG" )
@@ -79,7 +79,7 @@ class AnnotateCube64(Cube):
     imagemap = np.zeros ( [ zdim, xdim ], dtype=np.uint32 )
 
     # false color redrawing of the region
-    ndlib.recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
+    recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
 
     outimage = Image.frombuffer ( 'RGBA', (xdim,zdim), imagemap, 'raw', 'RGBA', 0, 1 )
     newimage = outimage.resize ( [xdim, int(zdim*scale)] )
@@ -93,7 +93,7 @@ class AnnotateCube64(Cube):
     imagemap = np.zeros ( [ zdim, ydim ], dtype=np.uint32 )
 
     # false color redrawing of the region
-    ndlib.recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
+    recolor64_ctype ( self.data.reshape((imagemap.shape[0],imagemap.shape[1])), imagemap )
 
     outimage = Image.frombuffer ( 'RGBA', (ydim,zdim), imagemap, 'raw', 'RGBA', 0, 1 )
     newimage = outimage.resize ( [ydim, int(zdim*scale)] )
@@ -148,6 +148,6 @@ class AnnotateCube64(Cube):
 
     newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]*(2**factor), self.data.shape[2]*(2**factor)], dtype=np.uint64) 
 
-    ndlib.zoomData64_ctype ( self.data, newdata, int(factor) )
+    zoomData64_ctype ( self.data, newdata, int(factor) )
 
     self.data = newdata
