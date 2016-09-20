@@ -25,11 +25,11 @@ from operator import add, sub, div, mod, mul
 import MySQLdb
 
 import annindex
-from cube import Cube
+from ndcube.cube import Cube
 
 import s3io
-from kvio import KVIO
-from kvindex import KVIndex
+from ndkvio.kvio import KVIO
+from ndkvindex.kvindex import KVIndex
 # from ndlib.ndlib import *
 from ndctypelib import *
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
@@ -567,7 +567,6 @@ class SpatialDB:
     else:
       dbname = ch.getTable(effresolution)
 
-    import cube
     incube = Cube.getCube ( cubedim, ch.getChannelType(), ch.getDataType() )
     outcube = Cube.getCube([xnumcubes*xcubedim,ynumcubes*ycubedim,znumcubes*zcubedim], ch.getChannelType(), ch.getDataType(), timerange=timerange)
                                         
