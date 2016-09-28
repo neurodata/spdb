@@ -20,7 +20,7 @@ import logging
 logger=logging.getLogger("neurodata")
 
 
-class KVIndex:
+class KVIndex(object):
 
   def __init__(self, db):
     """Constructor for the class"""

@@ -14,9 +14,7 @@
 
 from sets import Set
 import MySQLdb
-
 from kvindex import KVIndex
-
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
