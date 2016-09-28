@@ -1,4 +1,5 @@
 #### TODO List
 
-* Make supercuboid abstraction similar to cuboid
-*
+- [ ] Supercuboid abstraction similar to cuboid
+- [ ] kvindex support for timeseries data
+- [ ] Cache manager upstart script
