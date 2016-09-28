@@ -15,6 +15,7 @@
 from __future__ import division
 from django.conf import settings
 import redis
+from redispool import RedisPool
 from redislock import RedisLock
 from spatialdberror import SpatialDBError
 import logging
@@ -24,7 +25,7 @@ class RedisManager(object):
 
   def __init__(self):
     try:
-      self.client = redis.StrictRedis(host=settings.REDIS_INDEX_HOST, port=settings.REDIS_INDEX_PORT, db=settings.REDIS_INDEX_DB)
+      self.client = redis.StrictRedis(connection_pool=RedisPool.getPool())
       self.pipe = self.client.pipeline(transaction=True)
       # self.redis_lock = RedisLock()
     except redis.ConnectionError as e:
@@ -63,12 +64,15 @@ class RedisManager(object):
     if index_list:
       self.client.delete(*index_list)
   
+  def flushMemory(self):
+    self.client.flushdb()
+ 
   @RedisLock
   def emptyMemory(self):
     """Empty memory from cache"""
     try:
       index_list = self.getLRUIndex()
-      print ("empty memory: removing indexes: ", index_list)
+      # logger.debug("empty memory: removing indexes: ", index_list)
       self.deleteCubes(index_list)
       self.deleteLRUIndex(index_list)
     except Exception as e:

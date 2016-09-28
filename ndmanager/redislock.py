@@ -36,7 +36,7 @@ class RedisLock(object):
       # self.key = self.dlm.lock(settings.REDIS_LOCK, time)
       self.lua_lock = self.client.lock(settings.REDIS_LOCK, timeout=timeout, sleep=sleep, blocking_timeout=blocking_timeout)
       value = self.lua_lock.acquire()
-      logger.debug("Entering Lock. {}".format(time.time()))
+      logger.debug("Entering Lock. Time:{}".format(time.time()))
     except Exception as e:
       logger.error("{}".format(e))
       raise SpatialDBError("{}".format(e))
@@ -45,7 +45,7 @@ class RedisLock(object):
     try:
       # self.dlm.unlock(self.key)
       self.lua_lock.release()
-      logger.debug("Exiting Lock. {}".format(time.time()))
+      logger.debug("Exiting Lock. Time:{}".format(time.time()))
     except Exception as e:
       logger.error("{}".format(e))
       raise SpatialDBError("{}".format(e))

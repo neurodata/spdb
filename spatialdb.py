@@ -24,12 +24,12 @@ from contextlib import closing
 from operator import add, sub, div, mod, mul
 import MySQLdb
 
-import annindex
 from ndcube.cube import Cube
 
 from ndmanager.redislock import RedisLock
 import s3io
 from ndkvio.kvio import KVIO
+from ndkvindex import annindex
 from ndkvindex.kvindex import KVIndex
 from ndctypelib import *
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
@@ -74,6 +74,7 @@ class SpatialDB:
     """Close the connection"""
 
     self.kvio.close()
+    self.kvindex.close()
 
 
   def getCube(self, ch, zidx, resolution, timestamp=None, update=False):
