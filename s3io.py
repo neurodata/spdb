@@ -18,11 +18,9 @@ import blosc
 import hashlib
 from sets import Set
 from operator import add, sub, mul, div, mod
-
 from django.conf import settings
 from ndctypelib import XYZMorton, MortonXYZ
 from s3util import generateS3BucketName, generateS3Key
-
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -58,7 +56,6 @@ class S3IO:
     [x, y, z] = MortonXYZ(zidx)
     corner = map(mul, MortonXYZ(zidx), cubedim)
     [x,y,z] = map(div, corner, super_cubedim)
-    # print zidx, corner, [x,y,z], XYZMorton([x,y,z])
     return XYZMorton([x,y,z])
 
   def breakCubes(self, super_zidx, resolution, super_cube):

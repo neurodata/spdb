@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from django.conf import settings
 import redis
+from spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
 
@@ -26,29 +28,27 @@ class RedisLock(object):
       self.func = func
       self.lua_lock = None
     except Exception as e:
-      print e
-      raise
+      logger.error("{}".format(e))
+      raise SpatialDBError("{}".format(e))
   
   def lock(self, timeout=None, sleep=0.1, blocking_timeout=None):
     try:
       # self.key = self.dlm.lock(settings.REDIS_LOCK, time)
       self.lua_lock = self.client.lock(settings.REDIS_LOCK, timeout=timeout, sleep=sleep, blocking_timeout=blocking_timeout)
       value = self.lua_lock.acquire()
-      logger.warning("[MANAGER] Entering Lock")
-      print "entering lock"
+      logger.debug("Entering Lock. {}".format(time.time()))
     except Exception as e:
-      print e
-      raise
+      logger.error("{}".format(e))
+      raise SpatialDBError("{}".format(e))
 
   def unlock(self):
     try:
       # self.dlm.unlock(self.key)
       self.lua_lock.release()
-      logger.warning("[MANAGER] Exiting Lock")
-      print "exiting lock" 
+      logger.debug("Exiting Lock. {}".format(time.time()))
     except Exception as e:
-      print e
-      raise
+      logger.error("{}".format(e))
+      raise SpatialDBError("{}".format(e))
   
   def __get__(self, obj, type=None):
     new_func = self.func.__get__(obj, type)

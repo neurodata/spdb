@@ -107,7 +107,7 @@ class SpatialDB:
         ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
         # checking if the index exists inside the database or not
         if ids_to_fetch:
-          print "Miss:", listofidxs
+          logger.debug("Cache Miss: {}".format(listofidxs))
           super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
           
           # iterating over super_cuboids

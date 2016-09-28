@@ -16,9 +16,9 @@ from __future__ import division
 from django.conf import settings
 import redis
 from redislock import RedisLock
-# from redislock import lock_cache
-# from ndkvio.rediskvio import RedisKVIO
-# from ndkivindex import RedisKVIndex
+from spatialdberror import SpatialDBError
+import logging
+logger=logging.getLogger("neurodata")
 
 class RedisManager(object):
 
@@ -28,8 +28,8 @@ class RedisManager(object):
       self.pipe = self.client.pipeline(transaction=True)
       # self.redis_lock = RedisLock()
     except redis.ConnectionError as e:
-      print e
-      raise
+      logger.error("{}".format(e))
+      raise SpatialDBError("{}".format(e))
   
   def info(self):
     """Info in redis"""
@@ -42,7 +42,7 @@ class RedisManager(object):
   def memoryFull(self):
     """Check if memory is full or not"""
     info = self.info()
-    print (info['used_memory_rss'] / info['total_system_memory']) * 100
+    logger.debug("Memory Ratio: {}".format((info['used_memory_rss'] / info['total_system_memory']) * 100))
     return True if (info['used_memory_rss'] / info['total_system_memory']) * 100 > settings.REDIS_MEMORY_RATIO else False
   
   def getIndexStore(self):

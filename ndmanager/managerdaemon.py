@@ -20,29 +20,34 @@ import ND.settings
 os.environ['DJANGO_SETTINGS_MODULE'] = 'ND.settings'
 import django
 from django.conf import settings
-from daemonize import Daemonize
 from redismanager import RedisManager
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler("/var/log/neurodata/manager.log", 'w')
-fh.setLevel(logging.DEBUG)
-logger.addHandler(fh)
-keep_fds = [fh.stream.fileno()]
-logger.warning('start')
+logging.basicConfig(filename='/var/log/neurodata/ndmanager.log', 
+                    filemode = 'w',
+                    format = '[%(asctime)s] %(levelname)s [%(name)s:%(module)s:%(lineno)s]%(message)s',
+                    datefmt = '%d/%b/%Y %H:%M:%S',
+                    level = logging.DEBUG)
+logger = logging.getLogger('ndmanager')
+# import pdb; pdb.set_trace()
+# logger = logging.getLogger('neurodata')
+
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.DEBUG)
+# fh = logging.FileHandler("/var/log/neurodata/manager.log", 'w')
+# fh.setLevel(logging.DEBUG)
+# logger.addHandler(fh)
 
 pid = '/data/test.pid'
 
 def run():
+  logger.info("[MANAGER]: Starting manager.")
   while(True):
     redis_manager = RedisManager()
     if redis_manager.memoryFull():
-      logger.warning("[MANAGER]: Memory reached capacity. Removing Indices.")
+      logger.info("[MANAGER]: Memory reached capacity. Removing Indices.")
       redis_manager.emptyMemory()
     time.sleep(2)
 
 
 if __name__ == '__main__':
-  # run()
-  daemon = Daemonize(app='test_app', pid=pid, action=run, keep_fds=keep_fds)
-  daemon.start()
+  run()
