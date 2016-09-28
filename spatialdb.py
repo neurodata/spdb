@@ -27,10 +27,10 @@ import MySQLdb
 import annindex
 from ndcube.cube import Cube
 
+from ndmanager.redislock import RedisLock
 import s3io
 from ndkvio.kvio import KVIO
 from ndkvindex.kvindex import KVIndex
-# from ndlib.ndlib import *
 from ndctypelib import *
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
 
@@ -98,10 +98,10 @@ class SpatialDB:
 
     return cube
 
-
+  @RedisLock
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
-    
+     
     if listoftimestamps is None:
       if self.proj.getS3Backend() == S3_TRUE:
         ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
