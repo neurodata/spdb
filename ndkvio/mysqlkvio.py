@@ -14,10 +14,8 @@
 
 from sets import Set
 import MySQLdb
-
 from kvio import KVIO
 from ndtype import OLDCHANNEL
-
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")

@@ -13,10 +13,10 @@
 # limitations under the License.
 
 from cassandra.cluster import Cluster
-
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
+
 
 class CassandraKVIO:
 
@@ -24,9 +24,8 @@ class CassandraKVIO:
     """Connect to the database"""
 
     self.db = db
-
-    # connect to cassandra
     try:
+      # connect to cassandra
       self.cluster = Cluster( [self.db.proj.getKVServer()] )
       self.session = self.cluster.connect(self.db.proj.getDBName())
       self.session.default_timeout = 120

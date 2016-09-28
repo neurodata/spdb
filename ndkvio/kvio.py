@@ -13,14 +13,10 @@
 # limitations under the License.
 
 from abc import ABCMeta, abstractmethod
-
 from ndtype import MYSQL, RIAK, CASSANDRA, DYNAMODB, REDIS
 
-import logging
-logger=logging.getLogger("neurodata")
 
-
-class KVIO:
+class KVIO(object):
   # __metaclass__ = ABCMeta
 
   def __init__ ( self, db ):

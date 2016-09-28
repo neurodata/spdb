@@ -13,10 +13,8 @@
 # limitations under the License.
 
 import types
-
 from kvio import KVIO
 import redis
-
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -34,21 +32,20 @@ class RedisKVIO(KVIO):
     except redis.ConnectionError as e:
       logger.error("Could not connect to Redis server. {}".format(e))
       raise SpatialDBError("Could not connect to Redis server. {}".format(e))
-    
-
+   
   def generateKeys(self, ch, resolution, zidx_list, timestamp):
     """Generate a key for Redis"""
     
     key_list = []
     if isinstance(timestamp, types.ListType):
       for tvalue in timestamp:
-        key_list.append( '{}_{}_{}_{}_{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, tvalue, zidx_list[0]) )
+        key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, tvalue, zidx_list[0]) )
     else:
       for zidx in zidx_list:
         if timestamp == None:
-          key_list.append( '{}_{}_{}_{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, zidx) )
+          key_list.append( '{}&{}&{}&{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, zidx) )
         else:
-          key_list.append( '{}_{}_{}_{}_{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, timestamp, zidx) )
+          key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, timestamp, zidx) )
 
     return key_list
 
