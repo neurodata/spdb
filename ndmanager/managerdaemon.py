@@ -28,26 +28,22 @@ logging.basicConfig(filename='/var/log/neurodata/ndmanager.log',
                     datefmt = '%d/%b/%Y %H:%M:%S',
                     level = logging.DEBUG)
 logger = logging.getLogger('ndmanager')
-# import pdb; pdb.set_trace()
-# logger = logging.getLogger('neurodata')
 
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# fh = logging.FileHandler("/var/log/neurodata/manager.log", 'w')
-# fh.setLevel(logging.DEBUG)
-# logger.addHandler(fh)
-
-pid = '/data/test.pid'
 
 def run():
+  """Run the ndmanager process"""
   logger.info("[MANAGER]: Starting manager.")
+  # iterate over this loop
   while(True):
     redis_manager = RedisManager()
+    # check if memory cacpity has been breached 
     if redis_manager.memoryFull():
       logger.info("[MANAGER]: Memory reached capacity. Removing Indices.")
+      # remove LRU indexes from memory
       redis_manager.emptyMemory()
+    # sleep for 2 seconds and then continue
     time.sleep(2)
 
-
 if __name__ == '__main__':
+  # call run on main
   run()
