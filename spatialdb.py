@@ -27,6 +27,7 @@ import MySQLdb
 from ndcube.cube import Cube
 
 from ndmanager.redislock import RedisLock
+from ndmanager.readerlock import ReaderLock
 import s3io
 from ndkvio.kvio import KVIO
 from ndkvindex import annindex
@@ -99,7 +100,7 @@ class SpatialDB:
 
     return cube
 
-  @RedisLock
+  @ReaderLock
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
      
@@ -108,7 +109,7 @@ class SpatialDB:
         ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
         # checking if the index exists inside the database or not
         if ids_to_fetch:
-          logger.debug("Cache Miss: {}".format(listofidxs))
+          # logger.debug("Cache Miss: {}".format(listofidxs))
           super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
           
           # iterating over super_cuboids

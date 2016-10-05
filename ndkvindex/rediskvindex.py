@@ -17,6 +17,8 @@ from toolz import interleave
 import types
 from kvindex import KVIndex
 from redispool import RedisPool
+from ndmanager.readerlock import ReaderLock
+from ndmanager.writerlock import WriterLock
 import redis
 import django
 from django.conf import settings
@@ -33,8 +35,7 @@ class RedisKVIndex(KVIndex):
     
     self.db = db
     try:
-      # self.client = redis.StrictRedis(host=settings.REDIS_INDEX_HOST, port=settings.REDIS_INDEX_PORT, db=settings.REDIS_INDEX_DB, max_connections=10)
-      self.client = redis.StrictRedis(connection_pool=RedisPool.getPool())
+      self.client = redis.StrictRedis(connection_pool=RedisPool.blocking_pool)
       self.pipe = self.client.pipeline(transaction=False)
     except redis.ConnectionError as e:
       logger.error("Could not connect to Redis server. {}".format(e))

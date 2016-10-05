@@ -15,21 +15,12 @@
 import redis
 import django
 from django.conf import settings
+from singletontype import SingletonType
 from spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
 
 
 class RedisPool(object):
-  redis_pool = None
-
-  def __init__(self):
-    if self.redis_pool is not None:
-      logger.error("An instantiation of the class already exists.")
-      raise ValueError("An instantiation of the class already exists.")
-  
-  @classmethod
-  def getPool(cls):
-    if cls.redis_pool is None:
-      cls.redis_pool = redis.BlockingConnectionPool(host=settings.REDIS_INDEX_HOST, port=settings.REDIS_INDEX_PORT, db=settings.REDIS_INDEX_DB, max_connections=settings.REDIS_INDEX_MAX_CONNECTIONS)
-    return cls.redis_pool
+  __metaclass__ = SingletonType 
+  blocking_pool = redis.BlockingConnectionPool(host=settings.REDIS_INDEX_HOST, port=settings.REDIS_INDEX_PORT, db=settings.REDIS_INDEX_DB, max_connections=settings.REDIS_INDEX_MAX_CONNECTIONS)

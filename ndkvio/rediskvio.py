@@ -15,6 +15,8 @@
 import types
 import redis
 from redispool import RedisPool
+from ndmanager.readerlock import ReaderLock
+from ndmanager.writerlock import WriterLock
 from kvio import KVIO
 from spatialdberror import SpatialDBError
 import logging
@@ -28,8 +30,7 @@ class RedisKVIO(KVIO):
     
     self.db = db
     try:
-      self.client = redis.StrictRedis(connection_pool=RedisPool.getPool())
-      # self.client = redis.StrictRedis(host=self.db.proj.getDBHost(), port=6379, db=0)
+      self.client = redis.StrictRedis(connection_pool=RedisPool.blocking_pool)
       self.pipe = self.client.pipeline(transaction=False)
     except redis.ConnectionError as e:
       logger.error("Could not connect to Redis server. {}".format(e))
@@ -65,7 +66,6 @@ class RedisKVIO(KVIO):
       return rows[0]
     else:
       return None
-
 
   def getCubes(self, ch, listofidxs, resolution, neariso=False, timestamp=None):
     """Retrieve multiple cubes from the database"""
@@ -104,7 +104,6 @@ class RedisKVIO(KVIO):
     except Exception, e:
       logger.error("Error inserting cube into the database. {}".format(e))
       raise SpatialDBError("Error inserting cube into the database. {}".format(e))
-
 
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False, timestamp=None):
     """Store multiple cubes into the database"""
