@@ -15,6 +15,7 @@
 import time
 from django.conf import settings
 import redis
+import fasteners
 from spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
@@ -27,24 +28,27 @@ class RedisLock(object):
       self.client = redis.StrictRedis(host=settings.REDIS_INDEX_HOST, port=settings.REDIS_INDEX_PORT, db=settings.REDIS_INDEX_DB)
       self.func = func
       self.lua_lock = None
+      self._lock = fasteners.ReaderWriterLock()
     except Exception as e:
       logger.error("{}".format(e))
       raise SpatialDBError("{}".format(e))
   
+  @fasteners.read_locked
   def lock(self, timeout=None, sleep=0.1, blocking_timeout=None):
     try:
       # self.key = self.dlm.lock(settings.REDIS_LOCK, time)
-      self.lua_lock = self.client.lock(settings.REDIS_LOCK, timeout=timeout, sleep=sleep, blocking_timeout=blocking_timeout)
-      value = self.lua_lock.acquire()
+      # self.lua_lock = self.client.lock(settings.REDIS_LOCK, timeout=timeout, sleep=sleep, blocking_timeout=blocking_timeout)
+      # value = self.lua_lock.acquire()
       logger.debug("Entering Lock. Time:{}".format(time.time()))
     except Exception as e:
       logger.error("{}".format(e))
       raise SpatialDBError("{}".format(e))
-
+  
+  @fasteners.write_locked
   def unlock(self):
     try:
       # self.dlm.unlock(self.key)
-      self.lua_lock.release()
+      # self.lua_lock.release()
       logger.debug("Exiting Lock. Time:{}".format(time.time()))
     except Exception as e:
       logger.error("{}".format(e))

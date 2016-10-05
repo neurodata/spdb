@@ -30,17 +30,20 @@ logging.basicConfig(filename='/var/log/neurodata/ndmanager.log',
 logger = logging.getLogger('ndmanager')
 
 
+def daemonfunction():
+    redis_manager = RedisManager()
+    # check if memory cacpity has been breached 
+    if redis_manager.memoryUpperBound():
+      logger.info("[MANAGER]: Memory reached capacity. Removing Indices.")
+      # remove LRU indexes from memory
+      redis_manager.emptyMemory()
+
 def run():
   """Run the ndmanager process"""
   logger.info("[MANAGER]: Starting manager.")
   # iterate over this loop
   while(True):
-    redis_manager = RedisManager()
-    # check if memory cacpity has been breached 
-    if redis_manager.memoryFull():
-      logger.info("[MANAGER]: Memory reached capacity. Removing Indices.")
-      # remove LRU indexes from memory
-      redis_manager.emptyMemory()
+    daemonfunction()
     # sleep for 2 seconds and then continue
     time.sleep(2)
 

@@ -17,6 +17,7 @@ from django.conf import settings
 import redis
 from redispool import RedisPool
 from redislock import RedisLock
+from writerlock import WriterLock
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -25,13 +26,16 @@ class RedisManager(object):
 
   def __init__(self):
     try:
-      self.client = redis.StrictRedis(connection_pool=RedisPool.getPool())
+      self.client = redis.StrictRedis(connection_pool=RedisPool.blocking_pool)
       self.pipe = self.client.pipeline(transaction=True)
-      # self.redis_lock = RedisLock()
     except redis.ConnectionError as e:
       logger.error("{}".format(e))
       raise SpatialDBError("{}".format(e))
   
+  def close(self):
+    """Closing the connection"""
+    self.client = None
+
   def info(self):
     """Info in redis"""
     return self.client.info()
@@ -39,12 +43,20 @@ class RedisManager(object):
   def execute(self):
     """Execute pipe transaction"""
     self.pipe.execute()
-
-  def memoryFull(self):
-    """Check if memory is full or not"""
+  
+  def memoryRatio(self):
+    """Fetch the memory ratio"""
     info = self.info()
     logger.debug("Memory Ratio: {}".format((info['used_memory_rss'] / info['total_system_memory']) * 100))
-    return True if (info['used_memory_rss'] / info['total_system_memory']) * 100 > settings.REDIS_MEMORY_RATIO else False
+    return (info['used_memory_rss'] / info['total_system_memory']) * 100
+
+  def memoryUpperBound(self):
+    """Check if memory is full or not"""
+    return True if self.memoryRatio() > settings.REDIS_MEMORY_RATIO_UPPER_BOUND else False
+
+  def memoryLowerBound(self):
+    """Check if memory is now empty"""
+    return True if settings.REDIS_MEMORY_RATIO_LOWER_BOUND < self.memoryRatio() else False
   
   def getIndexStore(self):
     """Get the name of the index store"""
@@ -67,13 +79,14 @@ class RedisManager(object):
   def flushMemory(self):
     self.client.flushdb()
  
-  @RedisLock
+  @WriterLock
   def emptyMemory(self):
     """Empty memory from cache"""
     try:
-      index_list = self.getLRUIndex()
-      # logger.debug("empty memory: removing indexes: ", index_list)
-      self.deleteCubes(index_list)
-      self.deleteLRUIndex(index_list)
+      while self.memoryLowerBound():
+        index_list = self.getLRUIndex()
+        # logger.debug("empty memory: removing indexes: ", index_list)
+        self.deleteCubes(index_list)
+        self.deleteLRUIndex(index_list)
     except Exception as e:
       raise
