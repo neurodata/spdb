@@ -14,13 +14,9 @@
 
 import time
 from toolz import interleave
-import types
 from kvindex import KVIndex
 from redispool import RedisPool
-from ndmanager.readerlock import ReaderLock
-from ndmanager.writerlock import WriterLock
 import redis
-import django
 from django.conf import settings
 from spatialdberror import SpatialDBError
 import logging

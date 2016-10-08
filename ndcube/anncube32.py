@@ -12,15 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
-import array
-import cStringIO
 from PIL import Image
-import zlib
-
 from ndctypelib import *
 from cube import Cube
-
 from spatialdberror import SpatialDBError 
 import logging
 logger=logging.getLogger("neurodata")

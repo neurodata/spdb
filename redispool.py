@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import redis
-import django
 from django.conf import settings
 from singletontype import SingletonType
 from spatialdberror import SpatialDBError
@@ -23,4 +22,8 @@ logger = logging.getLogger("neurodata")
 
 class RedisPool(object):
   __metaclass__ = SingletonType 
-  blocking_pool = redis.BlockingConnectionPool(host=settings.REDIS_INDEX_HOST, port=settings.REDIS_INDEX_PORT, db=settings.REDIS_INDEX_DB, max_connections=settings.REDIS_INDEX_MAX_CONNECTIONS)
+
+  blocking_pool = redis.BlockingConnectionPool(host=settings.REDIS_INDEX_HOST,
+                                               port=settings.REDIS_INDEX_PORT,
+                                               db=settings.REDIS_INDEX_DB,
+                                               max_connections=settings.REDIS_INDEX_MAX_CONNECTIONS)

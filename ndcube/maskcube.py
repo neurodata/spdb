@@ -43,14 +43,14 @@ class MaskCube(Cube):
     #return unpacked
 
   def xySlice ( self, fileobj ):
-  """Create the specified slice (index) at filename"""
+    """Create the specified slice (index) at filename"""
 
     zdim,ydim,xdim = self.data.shape
     outimage = Image.frombuffer ( 'L', (xdim,ydim), self.data[0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
     outimage.save ( fileobj, "PNG" )
 
   def xzSlice ( self, zscale, fileobj  ):
-  """Create the specified slice (index) at filename"""
+    """Create the specified slice (index) at filename"""
 
     zdim,ydim,xdim = self.data.shape
     outimage = Image.frombuffer ( 'L', (xdim,zdim), self.data[:,0,:].flatten(), 'raw', 'L', 0, 1 ) 

@@ -14,12 +14,10 @@
 
 import numpy as np
 from PIL import Image
-
 from cube import Cube
-
 from spatialdberror import SpatialDBError
 import logging
-logger=logging.getLogger("neurodata")
+logger = logging.getLogger("neurodata")
 
 
 class ImageCubeFloat32(Cube):

@@ -29,7 +29,7 @@ class TimeCube8(TimeCube):
 
   def zeros(self):
     """Create a cube of all zeros"""
-    super(TimeCube16, self).zeros()
+    super(TimeCube8, self).zeros()
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint8)
 
   def xyImage ( self ):

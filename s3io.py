@@ -33,7 +33,9 @@ class S3IO:
     
     try:
       self.db = db
-      self.client = boto3.client('s3', aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+      self.client = boto3.client('s3',
+                                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
       self.project_name = self.db.proj.getProjectName()
     except Exception, e:
       logger.error("Cannot connect to S3 backend")

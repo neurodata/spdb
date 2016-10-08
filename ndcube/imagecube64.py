@@ -23,7 +23,7 @@ class ImageCube64(Cube):
     """Create empty array of cubesize"""
 
     # call the base class constructor
-    super(ImageCube64, self).__init__(cube_size_
+    super(ImageCube64, self).__init__(cube_size)
     # note that this is self.cubesize (which is transposed) in Cube
     self.data = np.zeros ( self.cubesize, dtype=np.uint64 )
 

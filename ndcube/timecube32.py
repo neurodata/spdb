@@ -13,10 +13,7 @@
 # limitations under the License.
 
 import numpy as np
-from PIL import Image
-
 from timecube import TimeCube
-
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")

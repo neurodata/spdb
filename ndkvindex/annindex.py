@@ -13,12 +13,8 @@
 # limitations under the License.
 
 import numpy as np
-import array
 import cStringIO
-import tempfile
-import h5py
 import blosc
-
 import logging
 logger=logging.getLogger("neurodata")
 

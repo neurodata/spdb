@@ -15,8 +15,6 @@
 import types
 import redis
 from redispool import RedisPool
-from ndmanager.readerlock import ReaderLock
-from ndmanager.writerlock import WriterLock
 from kvio import KVIO
 from spatialdberror import SpatialDBError
 import logging

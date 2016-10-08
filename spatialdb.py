@@ -22,10 +22,7 @@ import itertools
 import blosc
 from contextlib import closing
 from operator import add, sub, div, mod, mul
-import MySQLdb
-
 from ndcube.cube import Cube
-from ndmanager.redislock import RedisLock
 from ndmanager.readerlock import ReaderLock
 import s3io
 from ndkvio.kvio import KVIO
@@ -33,7 +30,6 @@ from ndkvindex import annindex
 from ndkvindex.kvindex import KVIndex
 from ndctypelib import *
 from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
-
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -81,21 +77,21 @@ class SpatialDB:
     """Load a cube from the database"""
 
     # get the size of the image and cube
-    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim[resolution]
+    cubedim = self.datasetcfg.cubedim[resolution]
     # KL TODO add indexing here
     cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
   
     # get the block from the database
-    cubestr = self.kvio.getCube(ch, zidx, resolution, update=update, timestamp=timestamp)
+    cube_str = self.kvio.getCube(ch, zidx, resolution, update=update, timestamp=timestamp)
 
-    if not cubestr:
+    if not cube_str:
       cube.zeros()
     else:
       # handle the cube format here and decompress the cube
       if self.NPZ:
-        cube.fromNPZ(cubestr)
+        cube.fromNPZ(cube_str)
       else:
-        cube.fromBlosc(cubestr)
+        cube.fromBlosc(cube_str)
 
     return cube
 
@@ -212,7 +208,7 @@ class SpatialDB:
   def annotate(self, ch, entityid, resolution, locations, conflictopt='O'):
     """Label the voxel locations or add as exceptions is the are already labeled."""
 
-    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ resolution ]
 
     # an item may exist across several cubes
     # convert the locations into Morton order
@@ -267,7 +263,7 @@ class SpatialDB:
   def shave ( self, ch, entityid, resolution, locations ):
     """Label the voxel locations or add as exceptions is the are already labeled."""
 
-    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ resolution ]
 
     # dictionary with the index
     cubeidx = defaultdict(set)
@@ -333,7 +329,7 @@ class SpatialDB:
     dim = annodata.shape[::-1]
 
     # get the size of the image and cube
-    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ resolution ]
 
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
@@ -422,7 +418,7 @@ class SpatialDB:
     dim = [ annodata.shape[2], annodata.shape[1], annodata.shape[0] ]
 
     # get the size of the image and cube
-    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ resolution ]
 
     # Round to the nearest larger cube in all dimensions
     zstart = corner[2]/cubedim.z
@@ -693,7 +689,7 @@ class SpatialDB:
       resolution = ch.resolution
     
     # get the size of the image and cube
-    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim[resolution]
+    cubedim = self.datasetcfg.cubedim[resolution]
     [xoffset, yoffset, zoffset] = offset = self.datasetcfg.offset[resolution]
 
     # convert the voxel into zindex and offsets. Round to the nearest larger cube in all dimensions
@@ -714,11 +710,6 @@ class SpatialDB:
 
   def applyCubeExceptions(self, ch, annoids, resolution, idx, cube):
     """Apply the expcetions to a specified cube and resolution"""
-
-    # get the size of the image and cube
-    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
-  
-    (x,y,z) = MortonXYZ ( idx )
 
     # for the target ids
     for annoid in annoids:
@@ -934,7 +925,7 @@ class SpatialDB:
   def annoCubeOffsets ( self, ch, dataids, resolution, remapid=False ):
     """an iterable on the offsets and cubes for an annotation"""
    
-    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ resolution ]
 
     # if cutout is below resolution, get a smaller cube and scaleup
     if ch.resolution > resolution:
@@ -1024,7 +1015,7 @@ class SpatialDB:
     """Write a blaze cuboid to the database"""
 
     # get the size of the image and cube
-    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ resolution ]
     
     # Round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
@@ -1043,7 +1034,7 @@ class SpatialDB:
     dim = cuboiddata.shape[::-1]
     
     # get the size of the image and cube
-    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    cubedim = self.datasetcfg.cubedim [ resolution ]
     
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
@@ -1107,7 +1098,7 @@ class SpatialDB:
       dim = cuboiddata.shape[::-1][:-1]
 
     # get the size of the image and cube
-    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim[resolution]
+    cubedim = self.datasetcfg.cubedim[resolution]
 
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)

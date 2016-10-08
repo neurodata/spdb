@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from sets import Set
 import MySQLdb
 from kvio import KVIO
 from ndtype import OLDCHANNEL
