@@ -25,7 +25,6 @@ from operator import add, sub, div, mod, mul
 import MySQLdb
 
 from ndcube.cube import Cube
-
 from ndmanager.redislock import RedisLock
 from ndmanager.readerlock import ReaderLock
 import s3io
@@ -82,9 +81,9 @@ class SpatialDB:
     """Load a cube from the database"""
 
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim[resolution]
+    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim[resolution]
     # KL TODO add indexing here
-    cube = Cube.getCube(cubedim, ch.getChannelType(), ch.getDataType())
+    cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
   
     # get the block from the database
     cubestr = self.kvio.getCube(ch, zidx, resolution, update=update, timestamp=timestamp)
@@ -135,9 +134,9 @@ class SpatialDB:
     
     # handle the cube format here
     if self.proj.getS3Backend() == S3_TRUE:
-      if ch.getChannelType() in TIMESERIES_CHANNELS and timestamp is not None:
+      if ch.channel_type in TIMESERIES_CHANNELS and timestamp is not None:
         self.kvindex.putCubeIndex(ch, resolution, [zidx], [timestamp])
-      elif ch.getChannelType() not in TIMESERIES_CHANNELS and timestamp is None:
+      elif ch.channel_type not in TIMESERIES_CHANNELS and timestamp is None:
         self.kvindex.putCubeIndex(ch, resolution, [zidx])
       else:
         logger.error("Timestamp is not None for Image Channels.")
@@ -213,7 +212,7 @@ class SpatialDB:
   def annotate(self, ch, entityid, resolution, locations, conflictopt='O'):
     """Label the voxel locations or add as exceptions is the are already labeled."""
 
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
 
     # an item may exist across several cubes
     # convert the locations into Morton order
@@ -268,7 +267,7 @@ class SpatialDB:
   def shave ( self, ch, entityid, resolution, locations ):
     """Label the voxel locations or add as exceptions is the are already labeled."""
 
-    [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
 
     # dictionary with the index
     cubeidx = defaultdict(set)
@@ -334,18 +333,18 @@ class SpatialDB:
     dim = annodata.shape[::-1]
 
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
 
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
 
-    znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
-    ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
-    xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
+    znumcubes = (corner[2]+dim[2]+cubedim.z-1)/cubedim.z - zstart
+    ynumcubes = (corner[1]+dim[1]+cubedim.y-1)/cubedim.y - ystart
+    xnumcubes = (corner[0]+dim[0]+cubedim.x-1)/cubedim.x - xstart
 
     offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
 
-    databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=np.uint32 )
+    databuffer = np.zeros ([znumcubes*cubedim.z, ynumcubes*cubedim.y, xnumcubes*cubedim.x], dtype=np.uint32 )
     databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = annodata 
 
     # start a transaction if supported
@@ -361,12 +360,12 @@ class SpatialDB:
             cube = self.getCube (ch, key, resolution, update=True)
             
             if conflictopt == 'O':
-              cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+              cube.overwrite ( databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ] )
             elif conflictopt == 'P':
-              cube.preserve ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+              cube.preserve ( databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ] )
             elif conflictopt == 'E': 
               if ch.getExceptions() == EXCEPTION_TRUE:
-                exdata = cube.exception ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+                exdata = cube.exception ( databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ] )
                 for exid in np.unique ( exdata ):
                   if exid != 0:
                     # get the offsets
@@ -388,7 +387,7 @@ class SpatialDB:
 
             # update the index for the cube
             # get the unique elements that are being added to the data
-            uniqueels = np.unique ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+            uniqueels = np.unique ( databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ] )
             for el in uniqueels:
               index_dict[el].add(key) 
 
@@ -423,22 +422,22 @@ class SpatialDB:
     dim = [ annodata.shape[2], annodata.shape[1], annodata.shape[0] ]
 
     # get the size of the image and cube
-    [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
 
     # Round to the nearest larger cube in all dimensions
-    zstart = corner[2]/zcubedim
-    ystart = corner[1]/ycubedim
-    xstart = corner[0]/xcubedim
+    zstart = corner[2]/cubedim.z
+    ystart = corner[1]/cubedim.y
+    xstart = corner[0]/cubedim.x
 
-    znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
-    ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
-    xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
+    znumcubes = (corner[2]+dim[2]+cubedim.z-1)/cubedim.z - zstart
+    ynumcubes = (corner[1]+dim[1]+cubedim.y-1)/cubedim.y - ystart
+    xnumcubes = (corner[0]+dim[0]+cubedim.x-1)/cubedim.x - xstart
 
-    zoffset = corner[2]%zcubedim
-    yoffset = corner[1]%ycubedim
-    xoffset = corner[0]%xcubedim
+    zoffset = corner[2]%cubedim.z
+    yoffset = corner[1]%cubedim.y
+    xoffset = corner[0]%cubedim.x
 
-    databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=np.uint32 )
+    databuffer = np.zeros ([znumcubes*cubedim.z, ynumcubes*cubedim.y, xnumcubes*cubedim.x], dtype=np.uint32 )
     databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = annodata 
 
     # start a transaction if supported
@@ -453,7 +452,7 @@ class SpatialDB:
             key = XYZMorton ([x+xstart,y+ystart,z+zstart])
             cube = self.getCube(ch, key, resolution, update=True)
 
-            exdata = cube.shaveDense ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+            exdata = cube.shaveDense ( databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ] )
             for exid in np.unique ( exdata ):
               if exid != 0:
                 # get the offsets
@@ -469,7 +468,7 @@ class SpatialDB:
 
             # update the index for the cube
             # get the unique elements that are being added to the data
-            uniqueels = np.unique ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+            uniqueels = np.unique ( databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ] )
             for el in uniqueels:
               index_dict[el].add(key) 
 
@@ -501,16 +500,16 @@ class SpatialDB:
     """Scale to a smaller cutout that will be zoomed"""
 
     # scale the corner to lower resolution
-    effcorner = corner[0]/(2**(ch.getResolution()-resolution)), corner[1]/(2**(ch.getResolution()-resolution)), corner[2]
+    effcorner = corner[0]/(2**(ch.resolution-resolution)), corner[1]/(2**(ch.resolution-resolution)), corner[2]
 
     # pixels offset within big range
-    xpixeloffset = corner[0]%(2**(ch.getResolution()-resolution))
-    ypixeloffset = corner[1]%(2**(ch.getResolution()-resolution))
+    xpixeloffset = corner[0]%(2**(ch.resolution-resolution))
+    ypixeloffset = corner[1]%(2**(ch.resolution-resolution))
 
     # get the new dimension, snap up to power of 2
     outcorner = (corner[0]+dim[0],corner[1]+dim[1],corner[2]+dim[2])
 
-    newoutcorner = (outcorner[0]-1)/(2**(ch.getResolution()-resolution))+1, (outcorner[1]-1)/(2**(ch.getResolution()-resolution))+1, outcorner[2]
+    newoutcorner = (outcorner[0]-1)/(2**(ch.resolution-resolution))+1, (outcorner[1]-1)/(2**(ch.resolution-resolution))+1, outcorner[2]
     effdim = (newoutcorner[0]-effcorner[0],newoutcorner[1]-effcorner[1],newoutcorner[2]-effcorner[2])
 
     return effcorner, effdim, (xpixeloffset,ypixeloffset)
@@ -520,9 +519,9 @@ class SpatialDB:
     """Scale to a larger cutout that will be shrunk"""
 
     # scale the corner to higher resolution
-    effcorner = corner[0]*(2**(resolution-ch.getResolution())), corner[1]*(2**(resolution-ch.getResolution())), corner[2]
+    effcorner = corner[0]*(2**(resolution-ch.resolution)), corner[1]*(2**(resolution-ch.resolution)), corner[2]
 
-    effdim = dim[0]*(2**(resolution-ch.getResolution())),dim[1]*(2**(resolution-ch.getResolution())),dim[2]
+    effdim = dim[0]*(2**(resolution-ch.resolution)),dim[1]*(2**(resolution-ch.resolution)),dim[2]
 
     return effcorner, effdim 
 
@@ -530,38 +529,32 @@ class SpatialDB:
   def cutout(self, ch, corner, dim, resolution, timerange=None, zscaling=None, annoids=None):
     """Extract a cube of arbitrary size. Need not be aligned."""
     
+    import pdb; pdb.set_trace()
+    cubedim = self.datasetcfg.cube_dim(resolution) 
     # if cutout is below resolution, get a smaller cube and scaleup
-    if ch.getChannelType() in ANNOTATION_CHANNELS and ch.getResolution() > resolution:
-
+    if ch.channel_type in ANNOTATION_CHANNELS and ch.resolution > resolution:
       # find the effective dimensions of the cutout (where the data is)
       effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout ( ch, corner, dim, resolution )
-      [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ ch.getResolution() ] 
-      effresolution = ch.getResolution()
-
+      effresolution = ch.resolution
     # if cutout is above resolution, get a large cube and scaledown
-    elif ch.getChannelType() in ANNOTATION_CHANNELS and ch.getResolution() < resolution and ch.getPropagate() not in [PROPAGATED]:  
-
-      [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ ch.getResolution() ] 
+    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.getPropagate() not in [PROPAGATED]:  
       effcorner, effdim = self._zoomoutCutout ( ch, corner, dim, resolution )
-      effresolution = ch.getResolution()
-
+      effresolution = ch.resolution
     # this is the default path when not scaling up the resolution
     else:
-
       # get the size of the image and cube
-      [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
       effcorner = corner
       effdim = dim
       effresolution = resolution 
 
     # Round to the nearest larger cube in all dimensions
-    zstart = effcorner[2]/zcubedim
-    ystart = effcorner[1]/ycubedim
-    xstart = effcorner[0]/xcubedim
+    zstart = effcorner[2]/cubedim.z
+    ystart = effcorner[1]/cubedim.y
+    xstart = effcorner[0]/cubedim.x
 
-    znumcubes = (effcorner[2]+effdim[2]+zcubedim-1)/zcubedim - zstart
-    ynumcubes = (effcorner[1]+effdim[1]+ycubedim-1)/ycubedim - ystart
-    xnumcubes = (effcorner[0]+effdim[0]+xcubedim-1)/xcubedim - xstart
+    znumcubes = (effcorner[2]+effdim[2]+cubedim.z-1)/cubedim.z - zstart
+    ynumcubes = (effcorner[1]+effdim[1]+cubedim.y-1)/cubedim.y - ystart
+    xnumcubes = (effcorner[0]+effdim[0]+cubedim.x-1)/cubedim.x - xstart
   
     # use the requested resolution
     if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
@@ -569,8 +562,8 @@ class SpatialDB:
     else:
       dbname = ch.getTable(effresolution)
 
-    incube = Cube.getCube ( cubedim, ch.getChannelType(), ch.getDataType() )
-    outcube = Cube.getCube([xnumcubes*xcubedim,ynumcubes*ycubedim,znumcubes*zcubedim], ch.getChannelType(), ch.getDataType(), timerange=timerange)
+    incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype )
+    outcube = Cube.CubeFactory([xnumcubes*cubedim.x, ynumcubes*cubedim.y, znumcubes*cubedim.z], ch.channel_type, ch.channel_datatype, timerange=timerange)
                                         
     # Build a list of indexes to access
     listofidxs = []
@@ -591,7 +584,7 @@ class SpatialDB:
     try:
       
       # checking for timeseries data and doing an optimized cutout here in timeseries column
-      if ch.getChannelType() in TIMESERIES_CHANNELS:
+      if ch.channel_type in TIMESERIES_CHANNELS:
         for idx in listofidxs:
           cuboids = self.getCubes(ch, idx, resolution, range(timerange[0],timerange[1]))
           
@@ -630,7 +623,7 @@ class SpatialDB:
               incube.fromBlosc ( datastring[:] )
 
           # apply exceptions if it's an annotation project
-          if annoids!= None and ch.getChannelType() in ANNOTATION_CHANNELS:
+          if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
             incube.data = filter_ctype_OMP ( incube.data, annoids )
             if ch.getExceptions() == EXCEPTION_TRUE:
               self.applyCubeExceptions ( ch, annoids, effresolution, idx, incube )
@@ -645,26 +638,26 @@ class SpatialDB:
     self.kvio.commit()
 
     # if we fetched a smaller cube to zoom, correct the result
-    if ch.getChannelType() in ANNOTATION_CHANNELS and ch.getResolution() > resolution:
+    if ch.channel_type in ANNOTATION_CHANNELS and ch.resolution > resolution:
 
-      outcube.zoomData ( ch.getResolution()-resolution )
+      outcube.zoomData ( ch.resolution-resolution )
 
       # need to trim based on the cube cutout at resolution()
-      outcube.trim ( corner[0]%(xcubedim*(2**(ch.getResolution()-resolution)))+xpixeloffset,dim[0], corner[1]%(ycubedim*(2**(ch.getResolution()-resolution)))+ypixeloffset,dim[1], corner[2]%zcubedim,dim[2] )
+      outcube.trim ( corner[0]%(cubedim.x*(2**(ch.resolution-resolution)))+xpixeloffset,dim[0], corner[1]%(cubedim.y*(2**(ch.resolution-resolution)))+ypixeloffset,dim[1], corner[2]%cubedim.z,dim[2] )
 
     # if we fetch a larger cube, downscale it and correct
-    elif ch.getChannelType() in ANNOTATION_CHANNELS and ch.getResolution() < resolution and ch.getPropagate() not in [PROPAGATED]:
+    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.getPropagate() not in [PROPAGATED]:
 
-      outcube.downScale (resolution - ch.getResolution())
+      outcube.downScale (resolution - ch.resolution)
 
       # need to trime based on the cube cutout at resolution
-      outcube.trim ( corner[0]%(xcubedim*(2**(ch.getResolution()-resolution))),dim[0], corner[1]%(ycubedim*(2**(ch.getResolution()-resolution))),dim[1], corner[2]%zcubedim,dim[2] )
+      outcube.trim ( corner[0]%(cubedim.x*(2**(ch.resolution-resolution))),dim[0], corner[1]%(cubedim.y*(2**(ch.resolution-resolution))),dim[1], corner[2]%cubedim.z,dim[2] )
       
     # need to trim down the array to size only if the dimensions are not the same
-    elif dim[0] % xcubedim  == 0 and dim[1] % ycubedim  == 0 and dim[2] % zcubedim  == 0 and corner[0] % xcubedim  == 0 and corner[1] % ycubedim  == 0 and corner[2] % zcubedim  == 0:
+    elif dim[0] % cubedim.x  == 0 and dim[1] % cubedim.y  == 0 and dim[2] % cubedim.z  == 0 and corner[0] % cubedim.x  == 0 and corner[1] % cubedim.y  == 0 and corner[2] % cubedim.z  == 0:
       pass
     else:
-      outcube.trim ( corner[0]%xcubedim,dim[0],corner[1]%ycubedim,dim[1],corner[2]%zcubedim,dim[2] )
+      outcube.trim ( corner[0]%cubedim.x,dim[0],corner[1]%cubedim.y,dim[1],corner[2]%cubedim.z,dim[2] )
 
     return outcube
 
@@ -688,27 +681,27 @@ class SpatialDB:
     
     # check propagate status, if not propagated then change voxel co-ordinates accordinig to base resolution
     if ch.getPropagate() in [NOT_PROPAGATED, UNDER_PROPAGATION]:
-      chres = ch.getResolution()
-      if resolution > ch.getResolution():
+      chres = ch.resolution
+      if resolution > ch.resolution:
         # upsample the x and y coordinates 
         for i in range(2):
-          voxel[i] = voxel[i] * (2**(resolution-ch.getResolution()))
-      elif resolution < ch.getResolution():
+          voxel[i] = voxel[i] * (2**(resolution-ch.resolution))
+      elif resolution < ch.resolution:
         # downsample the x and y coordinates 
         for i in range(2):
-          voxel[i] = voxel[i] / (2**(ch.getResolution()-resolution))
-      resolution = ch.getResolution()
+          voxel[i] = voxel[i] / (2**(ch.resolution-resolution))
+      resolution = ch.resolution
     
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim[resolution]
+    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim[resolution]
     [xoffset, yoffset, zoffset] = offset = self.datasetcfg.offset[resolution]
 
     # convert the voxel into zindex and offsets. Round to the nearest larger cube in all dimensions
     voxel = map(sub, voxel, offset)
     xyzcube = map(div, voxel, cubedim)
     xyzoffset = map(mod, voxel, cubedim)
-    #xyzcube = [ voxel[0]/xcubedim, voxel[1]/ycubedim, voxel[2]/zcubedim ]
-    #xyzoffset =[ voxel[0]%xcubedim, voxel[1]%ycubedim, voxel[2]%zcubedim ]
+    #xyzcube = [ voxel[0]/cubedim.x, voxel[1]/cubedim.y, voxel[2]/cubedim.z ]
+    #xyzoffset =[ voxel[0]%cubedim.x, voxel[1]%cubedim.y, voxel[2]%cubedim.z ]
     key = XYZMorton ( xyzcube )
 
     cube = self.getCube(ch, key, resolution)
@@ -723,7 +716,7 @@ class SpatialDB:
     """Apply the expcetions to a specified cube and resolution"""
 
     # get the size of the image and cube
-    [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
   
     (x,y,z) = MortonXYZ ( idx )
 
@@ -757,8 +750,8 @@ class SpatialDB:
     resolution = int(res)
     
     # scale to project resolution
-    if ch.getResolution() > resolution:
-      effectiveres = ch.getResolution() 
+    if ch.resolution > resolution:
+      effectiveres = ch.resolution 
     else:
       effectiveres = resolution
 
@@ -810,13 +803,13 @@ class SpatialDB:
     resolution = int(res)
 
     # determine the resolution for project information
-    if ch.getResolution() > resolution:
-      effectiveres = ch.getResolution() 
+    if ch.resolution > resolution:
+      effectiveres = ch.resolution 
       scaling = 2**(effectiveres-resolution)
 
     # if cutout is above resolution, get a large cube and scaledown
-    elif ch.getResolution() < resolution and ch.getPropagate() not in [PROPAGATED]:  
-      effectiveres = ch.getResolution() 
+    elif ch.resolution < resolution and ch.getPropagate() not in [PROPAGATED]:  
+      effectiveres = ch.resolution 
       scaling = 2**(effectiveres-resolution)
 
     else:
@@ -903,8 +896,8 @@ class SpatialDB:
     resolution = int(res)
 
     # determine the resolution for project information
-    if ch.getResolution() > resolution:
-      effectiveres = ch.getResolution() 
+    if ch.resolution > resolution:
+      effectiveres = ch.resolution 
       scaling = 2**(effectiveres-resolution)
     else:
       effectiveres = resolution
@@ -941,11 +934,11 @@ class SpatialDB:
   def annoCubeOffsets ( self, ch, dataids, resolution, remapid=False ):
     """an iterable on the offsets and cubes for an annotation"""
    
-    [ xcubedim, ycubedim, zcubedim ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [ cubedim.x, cubedim.y, cubedim.z ] = cubedim = self.datasetcfg.cubedim [ resolution ] 
 
     # if cutout is below resolution, get a smaller cube and scaleup
-    if ch.getResolution() > resolution:
-      effectiveres = ch.getResolution() 
+    if ch.resolution > resolution:
+      effectiveres = ch.resolution 
     else:
       effectiveres = resolution
     
@@ -967,7 +960,7 @@ class SpatialDB:
 
       # zoom the data if not at the right resolution and translate the zindex to the upper resolution
       (xoff,yoff,zoff) = MortonXYZ ( zidx )
-      offset = (xoff*xcubedim, yoff*ycubedim, zoff*zcubedim)
+      offset = (xoff*cubedim.x, yoff*cubedim.y, zoff*cubedim.z)
 
       # if we're zooming, so be it
       if resolution < effectiveres:
@@ -1031,7 +1024,7 @@ class SpatialDB:
     """Write a blaze cuboid to the database"""
 
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
     
     # Round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
@@ -1050,21 +1043,21 @@ class SpatialDB:
     dim = cuboiddata.shape[::-1]
     
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim [ resolution ] 
+    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim [ resolution ] 
     
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
 
-    znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
-    ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
-    xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
+    znumcubes = (corner[2]+dim[2]+cubedim.z-1)/cubedim.z - zstart
+    ynumcubes = (corner[1]+dim[1]+cubedim.y-1)/cubedim.y - ystart
+    xnumcubes = (corner[0]+dim[0]+cubedim.x-1)/cubedim.x - xstart
 
     offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
     
-    databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+    databuffer = np.zeros ([znumcubes*cubedim.z, ynumcubes*cubedim.y, xnumcubes*cubedim.x], dtype=cuboiddata.dtype )
     databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
 
-    incube = Cube.getCube(cubedim, ch.getChannelType(), ch.getDataType())
+    incube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
     
     self.kvio.startTxn()
     
@@ -1077,7 +1070,7 @@ class SpatialDB:
           for x in range(xnumcubes):
 
             listofidxs.append(XYZMorton ([x+xstart,y+ystart,z+zstart]))
-            incube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ]
+            incube.data = databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ]
             listofcubes.append(incube.toBlosc())
 
       self.putCubes(ch, listofidxs, resolution, listofcubes, update=False)
@@ -1114,22 +1107,22 @@ class SpatialDB:
       dim = cuboiddata.shape[::-1][:-1]
 
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim[resolution]
+    [cubedim.x, cubedim.y, cubedim.z] = cubedim = self.datasetcfg.cubedim[resolution]
 
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
 
-    znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
-    ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
-    xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
+    znumcubes = (corner[2]+dim[2]+cubedim.z-1)/cubedim.z - zstart
+    ynumcubes = (corner[1]+dim[1]+cubedim.y-1)/cubedim.y - ystart
+    xnumcubes = (corner[0]+dim[0]+cubedim.x-1)/cubedim.x - xstart
 
     offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
     
     if timerange == [0,0]:
-      databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+      databuffer = np.zeros ([znumcubes*cubedim.z, ynumcubes*cubedim.y, xnumcubes*cubedim.x], dtype=cuboiddata.dtype )
       databuffer[zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
     else:
-      databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+      databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*cubedim.z, ynumcubes*cubedim.y, xnumcubes*cubedim.x], dtype=cuboiddata.dtype )
       databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
 
 
@@ -1144,7 +1137,7 @@ class SpatialDB:
               key = XYZMorton ([x+xstart,y+ystart,z+zstart])
               cube = self.getCube (ch, key, resolution, update=True)
               # overwrite the cube
-              cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+              cube.overwrite ( databuffer [ z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x ] )
               # update in the database
               self.putCube (ch, key, resolution, cube)
       else:
@@ -1156,7 +1149,7 @@ class SpatialDB:
                 zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
                 cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
                 # overwrite the cube
-                cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
+                cube.overwrite(databuffer[timestamp-timerange[0], z*cubedim.z:(z+1)*cubedim.z, y*cubedim.y:(y+1)*cubedim.y, x*cubedim.x:(x+1)*cubedim.x])
                 # update in the database
                 self.putCube(ch, zidx, resolution, cube, timestamp)
 

@@ -158,8 +158,9 @@ class Cube(object):
 
   # factory method for cube
   @staticmethod
-  def getCube(cubedim, channel_type, datatype, timerange=None):
-
+  def CubeFactory(cubedim, channel_type, datatype, timerange=None):
+    
+    cubedim = cubedim.values()
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
       from anncube32 import AnnotateCube32
       return AnnotateCube32(cubedim)
