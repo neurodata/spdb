@@ -36,7 +36,7 @@ class S3IO:
       self.client = boto3.client('s3',
                                  aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                                  aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-      self.project_name = self.db.proj.getProjectName()
+      self.project_name = self.db.proj.project_name
     except Exception, e:
       logger.error("Cannot connect to S3 backend")
       raise SpatialDBError("Cannot connect to S3 backend")
@@ -49,10 +49,10 @@ class S3IO:
   def generateSuperZindex(self, zidx, resolution):
     """Generate super zindex from a given zindex"""
     
-    [[ximagesz, yimagesz, zimagesz], timerange] = self.db.proj.datasetcfg.imageSize(resolution)
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.db.proj.datasetcfg.getCubeDims()[resolution]
-    [xoffset, yoffset, zoffset] = self.db.proj.datasetcfg.getOffset()[resolution]
-    [xsupercubedim, ysupercubedim, zsupercubedim] = super_cubedim = self.db.proj.datasetcfg.getSuperCubeDims()[resolution]
+    [[ximagesz, yimagesz, zimagesz], timerange] = self.db.proj.datasetcfg.dataset_dim(resolution)
+    [xcubedim, ycubedim, zcubedim] = cubedim = self.db.proj.datasetcfg.get_cubedim(resolution)
+    [xoffset, yoffset, zoffset] = self.db.proj.datasetcfg.get_offset(resolution)
+    [xsupercubedim, ysupercubedim, zsupercubedim] = super_cubedim = self.db.proj.datasetcfg.get_supercubedim(resolution)
     
     # super_cubedim = map(mul, cubedim, SUPERCUBESIZE)
     [x, y, z] = MortonXYZ(zidx)
@@ -68,13 +68,13 @@ class S3IO:
     cube_list = []
     
     # SuperCube Size
-    [xnumcubes, ynumcubes, znumcubes] = self.db.datasetcfg.getSuperCubeSize()
+    [xnumcubes, ynumcubes, znumcubes] = self.db.datasetcfg.supercube_size
     
     # Cube dimensions
-    cubedim = self.db.datasetcfg.cubedim[resolution]
+    cubedim = self.db.datasetcfg.get_cubedim(resolution)
     [x,y,z] = MortonXYZ(super_zidx)
     # start = map(mul, cubedim, [x,y,z])
-    start = map(mul, [x,y,z], self.db.datasetcfg.getSuperCubeSize())
+    start = map(mul, [x,y,z], self.db.datasetcfg.supercube_size())
     
     for z in range(znumcubes):
       for y in range(ynumcubes):

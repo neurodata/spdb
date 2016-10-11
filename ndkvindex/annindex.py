@@ -27,7 +27,7 @@ class AnnotateIndex:
     self.proj = proj
     self.kvio = kvio
 
-    if self.proj.getKVEngine() == 'MySQL':
+    if self.proj.kvengine == 'MySQL':
       self.NPZ = True
     else: 
       self.NPZ = False

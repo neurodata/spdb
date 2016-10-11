@@ -33,12 +33,12 @@ class MySQLKVIO(KVIO):
     
     # Connection info 
     try:
-      self.conn = MySQLdb.connect (host = self.db.proj.getDBHost(), user = self.db.proj.getDBUser(), passwd = self.db.proj.getDBPasswd(), db = self.db.proj.getDBName())
+      self.conn = MySQLdb.connect (host = self.db.proj.host, user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname)
 
     except MySQLdb.Error, e:
       self.conn = None
-      logger.error("Failed to connect to database: {}, {}".format(self.db.proj.getDBHost(), self.db.proj.getDBName()))
-      raise SpatialDBError("Failed to connect to database: {}, {}".format(self.db.proj.getDBHost(), self.db.proj.getDBName()))
+      logger.error("Failed to connect to database: {}, {}".format(self.db.proj.host, self.db.proj.dbname))
+      raise SpatialDBError("Failed to connect to database: {}, {}".format(self.db.proj.host, self.db.proj.dbname))
 
     # start with no cursor
     self.txncursor = None
@@ -89,7 +89,7 @@ class MySQLKVIO(KVIO):
     sql = "SELECT chanid from channels where chanstr=%s"
 
     try:
-      cursor.execute ( sql, [ch.getChannelName()] )
+      cursor.execute ( sql, [ch.channel_name] )
       row = cursor.fetchone()
     except MySQLdb.Error, e:
       logger.error("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
@@ -110,7 +110,7 @@ class MySQLKVIO(KVIO):
     cursor = self.conn.cursor()
     
     if timestamp is None:
-      if ch.getChannelType() == OLDCHANNEL:
+      if ch.channel_type == OLDCHANNEL:
         channel_id = self.getChannelId(ch)
         sql = "SELECT cube FROM {} WHERE (channel,zindex) = ({},{})".format(ch.getTable(resolution), channel_id, zidx)
       else:
@@ -141,7 +141,7 @@ class MySQLKVIO(KVIO):
 
     cursor = self.conn.cursor()
 
-    if ch.getChannelType() == OLDCHANNEL:
+    if ch.channel_type == OLDCHANNEL:
       channel_id = self.getChannelId(ch)
       sql = "SELECT zindex,cube FROM {} where channel={} and zindex in (%s)".format( ch.getTable(resolution), channel_id)
     else:
