@@ -532,7 +532,7 @@ class SpatialDB:
       effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout ( ch, corner, dim, resolution )
       effresolution = ch.resolution
     # if cutout is above resolution, get a large cube and scaledown
-    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.getPropagate() not in [PROPAGATED]:  
+    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED]:  
       effcorner, effdim = self._zoomoutCutout ( ch, corner, dim, resolution )
       effresolution = ch.resolution
     # this is the default path when not scaling up the resolution
@@ -641,7 +641,7 @@ class SpatialDB:
       outcube.trim ( corner[0]%(xcubedim*(2**(ch.resolution-resolution)))+xpixeloffset,dim[0], corner[1]%(ycubedim*(2**(ch.resolution-resolution)))+ypixeloffset,dim[1], corner[2]%zcubedim,dim[2] )
 
     # if we fetch a larger cube, downscale it and correct
-    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.getPropagate() not in [PROPAGATED]:
+    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED]:
 
       outcube.downScale (resolution - ch.resolution)
 
@@ -675,7 +675,7 @@ class SpatialDB:
     """Return the identifier at a voxel"""
     
     # check propagate status, if not propagated then change voxel co-ordinates accordinig to base resolution
-    if ch.getPropagate() in [NOT_PROPAGATED, UNDER_PROPAGATION]:
+    if ch.propagate in [NOT_PROPAGATED, UNDER_PROPAGATION]:
       chres = ch.resolution
       if resolution > ch.resolution:
         # upsample the x and y coordinates 
@@ -798,7 +798,7 @@ class SpatialDB:
       scaling = 2**(effectiveres-resolution)
 
     # if cutout is above resolution, get a large cube and scaledown
-    elif ch.resolution < resolution and ch.getPropagate() not in [PROPAGATED]:  
+    elif ch.resolution < resolution and ch.propagate not in [PROPAGATED]:  
       effectiveres = ch.resolution 
       scaling = 2**(effectiveres-resolution)
 
