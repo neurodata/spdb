@@ -22,15 +22,15 @@ import itertools
 import blosc
 from contextlib import closing
 from operator import add, sub, div, mod, mul
-from ndcube.cube import Cube
+from spdb.ndcube.cube import Cube
 from ndmanager.readerlock import ReaderLock
-import s3io
-from ndkvio.kvio import KVIO
-from ndkvindex import annindex
-from ndkvindex.kvindex import KVIndex
-from ndctypelib import *
-from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
-from spatialdberror import SpatialDBError
+import spdb.s3io as s3io
+from spdb.ndkvio.kvio import KVIO
+from spdb.ndkvindex import annindex
+from spdb.ndkvindex.kvindex import KVIndex
+from ndlib.ndctypelib import *
+from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 

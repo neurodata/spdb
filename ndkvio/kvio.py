@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABCMeta, abstractmethod
-from ndtype import MYSQL, RIAK, CASSANDRA, DYNAMODB, REDIS
+from ndlib.ndtype import MYSQL, RIAK, CASSANDRA, DYNAMODB, REDIS
 
 
 class KVIO(object):

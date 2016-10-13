@@ -19,9 +19,9 @@ import hashlib
 from sets import Set
 from operator import add, sub, mul, div, mod
 from django.conf import settings
-from ndctypelib import XYZMorton, MortonXYZ
-from s3util import generateS3BucketName, generateS3Key
-from spatialdberror import SpatialDBError
+from ndlib.ndctypelib import XYZMorton, MortonXYZ
+from ndlib.s3util import generateS3BucketName, generateS3Key
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 

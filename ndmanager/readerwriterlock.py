@@ -16,7 +16,7 @@ import os
 import time
 import redis
 from contextlib import closing
-from redispool import RedisPool
+from spdb.redispool import RedisPool
 from django.conf import settings
 import logging
 logger=logging.getLogger("neurodata")

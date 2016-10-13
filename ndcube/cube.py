@@ -17,9 +17,9 @@ import zlib
 import cStringIO
 import blosc
 from abc import abstractmethod
-from ndctypelib import  overwriteDense_ctype
-from ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, DTYPE_uint8, DTYPE_uint16, DTYPE_uint32, DTYPE_uint64, DTYPE_float32
-from spatialdberror import SpatialDBError
+from ndlib.ndctypelib import  overwriteDense_ctype
+from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, DTYPE_uint8, DTYPE_uint16, DTYPE_uint32, DTYPE_uint64, DTYPE_float32
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
 
