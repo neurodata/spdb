@@ -74,7 +74,7 @@ class S3IO:
     cubedim = self.db.datasetcfg.get_cubedim(resolution)
     [x,y,z] = MortonXYZ(super_zidx)
     # start = map(mul, cubedim, [x,y,z])
-    start = map(mul, [x,y,z], self.db.datasetcfg.supercube_size())
+    start = map(mul, [x,y,z], self.db.datasetcfg.supercube_size)
     
     for z in range(znumcubes):
       for y in range(ynumcubes):
@@ -97,7 +97,7 @@ class S3IO:
     # KL TODO replace this by ndingest cuboidbucket
     super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx)).get('Body').read()
+      super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx)).get('Body').read()
       return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
@@ -114,7 +114,7 @@ class S3IO:
    
     for super_zidx in super_listofidxs:
       try:
-        super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx)).get('Body').read()
+        super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx)).get('Body').read()
         yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
       except botocore.exceptions.DataNotFoundError as e:
         logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
@@ -140,7 +140,7 @@ class S3IO:
     # super_zidx = self.generateSuperZindex(zidx, resolution)
     # KL TODO replace this by ndingest cuboidbucket
     try:
-      response = self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.getChannelName(), resolution, super_zidx), Body=cubestr)
+      response = self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx), Body=cubestr)
     except botocore.exceptions.EndpointConnectionError as e:
       logger.error("Cannot write s3 object. {}".format(e))
       raise SpatialDBError("Cannot write s3 object. {}".format(e))

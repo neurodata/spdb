@@ -44,7 +44,7 @@ class RedisKVIndex(KVIndex):
 
   def getIndexList(self, ch, resolution, listofidxs):
     """Generate the name of the Index Store"""
-    return ['{}&{}&{}&{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, index) for index in listofidxs]
+    return ['{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, index) for index in listofidxs]
   
   def cleanIndexList(self, index_list):
     return [ index.split('&')[-1] for index in index_list]

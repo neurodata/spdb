@@ -47,7 +47,7 @@ class DynamoKVIO:
 
     import pdb; pdb.set_trace()
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       keystr = "cuboid:{}:{}".format(resolution,zidx) 
@@ -95,7 +95,7 @@ class DynamoKVIO:
 
     import pdb; pdb.set_trace()
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       keystr = "cuboid:{}:{}".format(resolution,zidx) 
@@ -112,7 +112,7 @@ class DynamoKVIO:
   def getIndex ( self, ch, annid, resolution, update=False ):
     """Fetch index routine. Update is irrelevant for KV clients"""
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       response = dtbl.get_item ( Key = { 'resolution': resolution, 'zidx': zidx } ) 	
@@ -125,7 +125,7 @@ class DynamoKVIO:
   def putIndex ( self, ch, annid, resolution, indexstr, update ):
     """Dynamo put index routine"""
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       response = dtbl.put_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'cuboids': indexstr } ) 	
@@ -136,7 +136,7 @@ class DynamoKVIO:
   def deleteIndex ( self, ch, annid, resolution ):
     """Dynamo update index routine"""
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       response = dtbl.delete_item ( Key = { 'resolution': resolution, 'zidx': zidx } ) 	
@@ -147,7 +147,7 @@ class DynamoKVIO:
   def getExceptions ( self, ch, zidx, resolution, annid ):
     """Retrieve exceptions from the database by token, resolution, and zidx"""
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       response = dtbl.get_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'annid': annid } ) 	
@@ -161,7 +161,7 @@ class DynamoKVIO:
   def putExceptions ( self, ch, zidx, resolution, annid, excstr, update=False ):
     """Store exceptions in the annotation database"""
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       response = dtbl.put_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'annid': annid, 'exceptions': excstr.encode('hex') } ) 	
@@ -172,7 +172,7 @@ class DynamoKVIO:
   def deleteExceptions ( self, ch, zidx, resolution, annid ):
     """Delete a list of exceptions for this cuboid"""
 
-    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.getChannelName()))
+    dtbl = self.dynamodb.Table ( '{}_{}'.format(self.db.proj.getDBName(),ch.channel_name))
 
     try:
       response = dtbl.delete_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'annid': annid } )

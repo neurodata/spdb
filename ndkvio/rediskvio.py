@@ -40,13 +40,13 @@ class RedisKVIO(KVIO):
     key_list = []
     if isinstance(timestamp, types.ListType):
       for tvalue in timestamp:
-        key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, tvalue, zidx_list[0]) )
+        key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, tvalue, zidx_list[0]) )
     else:
       for zidx in zidx_list:
         if timestamp == None:
-          key_list.append( '{}&{}&{}&{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, zidx) )
+          key_list.append( '{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx) )
         else:
-          key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.getProjectName(), ch.getChannelName(), resolution, timestamp, zidx) )
+          key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, timestamp, zidx) )
 
     return key_list
 
