@@ -103,7 +103,6 @@ class S3IO:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
       raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
     
-  
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     
@@ -128,10 +127,29 @@ class S3IO:
 
   def getTimeCubes(self, ch, listofidxsidx, listoftimestamps, resolution):
     """Retrieve multiple cubes from the database"""
-    return NotImplemented
+    
+    # KL TODO Test this function
+    super_listofidxs = Set([])
+    for zidx in listofidxs:
+      super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
+    
+    for time_index in listoftimestamps:
+      for super_zidx in super_listofidxs:
+        try:
+          super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx, time_index)).get('Body').read()
+          yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
+        except botocore.exceptions.DataNotFoundError as e:
+          logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+          raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+        except botocore.exceptions.ClientError as e:
+          if e.response['Error']['Code'] == 'NoSuckKey':
+            continue
+          if e.response['Error']['Code'] == 'NoSuchBucket':
+            pass
  
   def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
     """Store multiple cubes into the database"""
+    # KL TODO This should be replaced by Blaze
     return NotImplemented
   
   def putCube ( self, ch, resolution, super_zidx, cubestr, timestamp=None, update=False ):

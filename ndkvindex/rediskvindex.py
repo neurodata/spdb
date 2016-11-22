@@ -24,7 +24,6 @@ logger = logging.getLogger("neurodata")
 
 
 class RedisKVIndex(KVIndex):
-  
 
   def __init__(self, db):
     """Connect to the Redis backend"""
@@ -37,7 +36,6 @@ class RedisKVIndex(KVIndex):
       logger.error("Could not connect to Redis server. {}".format(e))
       raise SpatialDBError("Could not connect to Redis server. {}".format(e))
   
-
   def getIndexStore(self):
     """Generate the name of the Index Store"""
     return settings.REDIS_INDEX_KEY
@@ -57,8 +55,9 @@ class RedisKVIndex(KVIndex):
     
     try:
       if listoftimestamps:
-        pass
-        # self.client.zadd(list(interleave([listofidxs, listoftimestamps])))
+        # TODO KL Test this
+        index_list = list(interleave([[1]*len(listofidxs), self.getIndexList(ch, resolution, listofidxs)]))
+        self.client.zadd(index_store_temp, *index_list)
       else:
         index_list = list(interleave([[1]*len(listofidxs), self.getIndexList(ch, resolution, listofidxs)]))
         self.client.zadd(index_store_temp, *index_list)
@@ -77,8 +76,10 @@ class RedisKVIndex(KVIndex):
     
     try: 
       if listoftimestamps:
-        # self.client.sadd( self.getIndexStore(ch, resolution), *zip(listoftimestamps, listofidxs))
-        pass
+        # TODO KL Test this
+        cachedtime_list = [time.time()]*len(listofidxs)
+        index_list = list(interleave([cachedtime_list, self.getIndexList(ch, resolution, listofidxs)]))
+        self.client.zadd(self.getIndexStore(), *index_list)
       else:
         cachedtime_list = [time.time()]*len(listofidxs)
         index_list = list(interleave([cachedtime_list, self.getIndexList(ch, resolution, listofidxs)]))
