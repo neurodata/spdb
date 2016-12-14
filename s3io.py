@@ -22,20 +22,20 @@ from django.conf import settings
 from ndlib.ndctypelib import XYZMorton, MortonXYZ
 from ndlib.s3util import generateS3BucketName, generateS3Key
 from spdb.spatialdberror import SpatialDBError
+from ndingest.settings.settings import Settings
+ndingest_settings = Settings.load()
 import logging
 logger=logging.getLogger("neurodata")
 
 
 class S3IO:
 
-  def __init__ ( self, db ):
+  def __init__(self, db, region_name=ndingest_settings.REGION_NAME, endpoint_url=ndingest_settings.S3_ENDPOINT):
     """Connect to the S3 backend"""
     
     try:
       self.db = db
-      self.client = boto3.client('s3',
-                                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+      self.client = boto3.client('s3', region_name=region_name, endpoint_url=endpoint_url, aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
       self.project_name = self.db.proj.project_name
     except Exception, e:
       logger.error("Cannot connect to S3 backend")
