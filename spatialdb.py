@@ -1072,7 +1072,7 @@ class SpatialDB:
     self.kvio.commit()
 
 
-  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
+  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,0], blind=False):
     """
     Write a 3D/4D volume to the key-value store.
 
@@ -1112,12 +1112,12 @@ class SpatialDB:
       databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
       databuffer[zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
     else:
-      databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+      databuffer = np.zeros([timerange[1]+1-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
       databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
 
 
     self.kvio.startTxn()
-    
+
     try:
       if timerange == [0,0]:
         for z in range(znumcubes):
