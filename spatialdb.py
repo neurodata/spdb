@@ -73,7 +73,7 @@ class SpatialDB:
     self.kvindex.close()
 
 
-  def getCube(self, ch, zidx, resolution, timestamp=None, update=False):
+  def getCube(self, ch, zidx, resolution, timestamp=0, update=False):
     """Load a cube from the database"""
 
     # get the size of the image and cube
@@ -125,7 +125,7 @@ class SpatialDB:
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
   
-  def putCube(self, ch, zidx, resolution, cube, timestamp=None, update=False):
+  def putCube(self, ch, zidx, resolution, cube, timestamp=0, update=False):
     """ Store a cube in the annotation database """
     
     # handle the cube format here
@@ -1023,10 +1023,10 @@ class SpatialDB:
     zidx = XYZMorton(start)
     
     # insert the cuboid in the database
-    self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=True, timestamp=None)
+    self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=True, timestamp=0)
 
 
-  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=None):
+  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
     """Write an arbitary size data to the database"""
 
     # dim is in xyz, data is in zyx order
