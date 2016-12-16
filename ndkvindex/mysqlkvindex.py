@@ -19,11 +19,7 @@ from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 
-
-"""Helpers function to do cube I/O in across multiple DBs.
-    This uses the state and methods of spatialdb"""
-
-class MySQLKVIO(KVIndex):
+class MySQLKVIndex(KVIndex):
 
   def __init__ ( self, db ):
     """Connect to the database"""

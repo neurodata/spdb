@@ -22,20 +22,20 @@ from django.conf import settings
 from ndlib.ndctypelib import XYZMorton, MortonXYZ
 from ndlib.s3util import generateS3BucketName, generateS3Key
 from spdb.spatialdberror import SpatialDBError
+from ndingest.settings.settings import Settings
+ndingest_settings = Settings.load()
 import logging
 logger=logging.getLogger("neurodata")
 
 
 class S3IO:
 
-  def __init__ ( self, db ):
+  def __init__(self, db, region_name=ndingest_settings.REGION_NAME, endpoint_url=ndingest_settings.S3_ENDPOINT):
     """Connect to the S3 backend"""
     
     try:
       self.db = db
-      self.client = boto3.client('s3',
-                                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+      self.client = boto3.client('s3', region_name=region_name, endpoint_url=endpoint_url, aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
       self.project_name = self.db.proj.project_name
     except Exception, e:
       logger.error("Cannot connect to S3 backend")
@@ -103,7 +103,6 @@ class S3IO:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
       raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
     
-  
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     
@@ -128,10 +127,29 @@ class S3IO:
 
   def getTimeCubes(self, ch, listofidxsidx, listoftimestamps, resolution):
     """Retrieve multiple cubes from the database"""
-    return NotImplemented
+    
+    # KL TODO Test this function
+    super_listofidxs = Set([])
+    for zidx in listofidxs:
+      super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
+    
+    for time_index in listoftimestamps:
+      for super_zidx in super_listofidxs:
+        try:
+          super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx, time_index)).get('Body').read()
+          yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
+        except botocore.exceptions.DataNotFoundError as e:
+          logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+          raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+        except botocore.exceptions.ClientError as e:
+          if e.response['Error']['Code'] == 'NoSuckKey':
+            continue
+          if e.response['Error']['Code'] == 'NoSuchBucket':
+            pass
  
   def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
     """Store multiple cubes into the database"""
+    # KL TODO This should be replaced by Blaze
     return NotImplemented
   
   def putCube ( self, ch, resolution, super_zidx, cubestr, timestamp=None, update=False ):
