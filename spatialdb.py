@@ -1112,7 +1112,7 @@ class SpatialDB:
       databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
       databuffer[zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
     else:
-      databuffer = np.zeros([timerange[1]+1-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+      databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
       databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
 
 
@@ -1142,8 +1142,8 @@ class SpatialDB:
         for z in range(znumcubes):
           for y in range(ynumcubes):
             for x in range(xnumcubes):
-              for timestamp in range(timerange[0], timerange[1]+1, 1):
-                print x, y, z, timestamp, timerange
+              for timestamp in range(timerange[0], timerange[1], 1):
+                # print x, y, z, timestamp, timerange
                 zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
                 if not blind:
                   cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
