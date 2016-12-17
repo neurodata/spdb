@@ -73,7 +73,7 @@ class SpatialDB:
     self.kvindex.close()
 
 
-  def getCube(self, ch, zidx, resolution, timestamp=None, update=False):
+  def getCube(self, ch, zidx, resolution, timestamp=0, update=False):
     """Load a cube from the database"""
 
     # get the size of the image and cube
@@ -125,7 +125,7 @@ class SpatialDB:
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
   
-  def putCube(self, ch, zidx, resolution, cube, timestamp=None, update=False):
+  def putCube(self, ch, zidx, resolution, cube, timestamp=0, update=False):
     """ Store a cube in the annotation database """
     
     # handle the cube format here
@@ -524,7 +524,7 @@ class SpatialDB:
 
   def cutout(self, ch, corner, dim, resolution, timerange=None, zscaling=None, annoids=None):
     """Extract a cube of arbitrary size. Need not be aligned."""
-    
+
     [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution) 
     # if cutout is below resolution, get a smaller cube and scaleup
     if ch.channel_type in ANNOTATION_CHANNELS and ch.resolution > resolution:
@@ -1023,10 +1023,10 @@ class SpatialDB:
     zidx = XYZMorton(start)
     
     # insert the cuboid in the database
-    self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=True, timestamp=None)
+    self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=True, timestamp=0)
 
 
-  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=None):
+  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
     """Write an arbitary size data to the database"""
 
     # dim is in xyz, data is in zyx order
@@ -1072,7 +1072,7 @@ class SpatialDB:
     self.kvio.commit()
 
 
-  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
+  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,0], blind=False):
     """
     Write a 3D/4D volume to the key-value store.
 
@@ -1117,7 +1117,7 @@ class SpatialDB:
 
 
     self.kvio.startTxn()
-    
+
     try:
       if timerange == [0,0]:
         for z in range(znumcubes):
@@ -1125,16 +1125,33 @@ class SpatialDB:
             for x in range(xnumcubes):
 
               key = XYZMorton ([x+xstart,y+ystart,z+zstart])
-              cube = self.getCube (ch, key, resolution, update=True)
-              # overwrite the cube
-              cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+
+              if not blind:
+                cube = self.getCube (ch, key, resolution, update=True)
+
+                # overwrite the cube
+                cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+              else: 
+                cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
+                cube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] 
+               
               # update in the database
               self.putCube (ch, key, resolution, cube)
+
       else:
         for z in range(znumcubes):
           for y in range(ynumcubes):
             for x in range(xnumcubes):
               for timestamp in range(timerange[0], timerange[1], 1):
+                # print x, y, z, timestamp, timerange
+                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
+                if not blind:
+                  cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
+                  # overwrite the cube
+                  cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
+                else:
+                  cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
+                  cube.data = databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim]
 
                 zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
                 cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
