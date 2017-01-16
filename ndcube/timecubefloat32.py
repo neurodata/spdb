@@ -23,7 +23,7 @@ logger=logging.getLogger("neurodata")
 class TimeCubeFloat32(Cube):
 
   # Constructor 
-  def __init__(self, cubesize=[128,128,16], timerange=[0,0]):
+  def __init__(self, cubesize=[128,128,16], timerange=[0,1]):
     """Create empty array of cubesize"""
 
     # call the base class constructor

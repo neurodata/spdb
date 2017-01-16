@@ -73,16 +73,17 @@ class SpatialDB:
     self.kvindex.close()
 
 
+  # RBTODO make this timerange compatibile?
   def getCube(self, ch, zidx, resolution, timestamp=0, update=False):
     """Load a cube from the database"""
 
     # get the size of the image and cube
     cubedim = self.datasetcfg.cubedim[resolution]
     # KL TODO add indexing here
-    cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
+    cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, [0,1])
   
     # get the block from the database
-    cube_str = self.kvio.getCube(ch, zidx, resolution, update=update, timestamp=timestamp)
+    cube_str = self.kvio.getCube(ch, zidx, resolution, update=update)
 
     if not cube_str:
       cube.zeros()
@@ -557,7 +558,7 @@ class SpatialDB:
     else:
       dbname = ch.getTable(effresolution)
 
-    incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype )
+    incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange )
     outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, timerange=timerange)
                                         
     # Build a list of indexes to access
@@ -577,7 +578,7 @@ class SpatialDB:
     self.kvio.startTxn()
 
     try:
-      
+
       # checking for timeseries data and doing an optimized cutout here in timeseries column
       if ch.channel_type in TIMESERIES_CHANNELS:
         for idx in listofidxs:
@@ -1026,53 +1027,53 @@ class SpatialDB:
     self.kvio.putCube(ch, zidx, resolution, cuboiddata, update=True, timestamp=0)
 
 
-  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
-    """Write an arbitary size data to the database"""
+#  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
+#    """Write an arbitary size data to the database"""
+#
+#    # dim is in xyz, data is in zyx order
+#    dim = cuboiddata.shape[::-1]
+#    
+#    # get the size of the image and cube
+#    cubedim = self.datasetcfg.cubedim [ resolution ]
+#    
+#    # round to the nearest larger cube in all dimensions
+#    start = [xstart, ystart, zstart] = map(div, corner, cubedim)
+#
+#    znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
+#    ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
+#    xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
+#
+#    offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
+#    
+#    databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+#    databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
+#
+#    incube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
+#    
+#    self.kvio.startTxn()
+#    
+#    listofidxs = []
+#    listofcubes = []
+#
+#    try:
+#      for z in range(znumcubes):
+#        for y in range(ynumcubes):
+#          for x in range(xnumcubes):
+#
+#            listofidxs.append(XYZMorton ([x+xstart,y+ystart,z+zstart]))
+#            incube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ]
+#            listofcubes.append(incube.toBlosc())
+#
+#      self.putCubes(ch, listofidxs, resolution, listofcubes, update=False)
+#
+#    except:
+#      self.kvio.rollback()
+#      raise
+#
+#    self.kvio.commit()
 
-    # dim is in xyz, data is in zyx order
-    dim = cuboiddata.shape[::-1]
-    
-    # get the size of the image and cube
-    cubedim = self.datasetcfg.cubedim [ resolution ]
-    
-    # round to the nearest larger cube in all dimensions
-    start = [xstart, ystart, zstart] = map(div, corner, cubedim)
 
-    znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
-    ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
-    xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
-
-    offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
-    
-    databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-    databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
-
-    incube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
-    
-    self.kvio.startTxn()
-    
-    listofidxs = []
-    listofcubes = []
-
-    try:
-      for z in range(znumcubes):
-        for y in range(ynumcubes):
-          for x in range(xnumcubes):
-
-            listofidxs.append(XYZMorton ([x+xstart,y+ystart,z+zstart]))
-            incube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ]
-            listofcubes.append(incube.toBlosc())
-
-      self.putCubes(ch, listofidxs, resolution, listofcubes, update=False)
-
-    except:
-      self.kvio.rollback()
-      raise
-
-    self.kvio.commit()
-
-
-  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,0], blind=False):
+  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=None):
     """
     Write a 3D/4D volume to the key-value store.
 
@@ -1091,7 +1092,7 @@ class SpatialDB:
     """
    
     # dim is in xyz, data is in zyx order
-    if timerange == [0,0]:
+    if timerange == None: 
       dim = cuboiddata.shape[::-1]
     else:
       dim = cuboiddata.shape[::-1][:-1]
@@ -1108,53 +1109,50 @@ class SpatialDB:
 
     offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
     
-    if timerange == [0,0]:
+    if timerange == None:
       databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
       databuffer[zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
     else:
-      databuffer = np.zeros([timerange[1]+1-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+      databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
       databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
 
 
     self.kvio.startTxn()
 
     try:
-      if timerange == [0,0]:
+      if timerange == None:
         for z in range(znumcubes):
           for y in range(ynumcubes):
             for x in range(xnumcubes):
-
+  
               key = XYZMorton ([x+xstart,y+ystart,z+zstart])
 
-              if not blind:
-                cube = self.getCube (ch, key, resolution, update=True)
+              cube = self.getCube (ch, key, resolution, update=True)
 
-                # overwrite the cube
-                cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
-              else: 
-                cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
-                cube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] 
-               
+              # overwrite the cube
+              cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
               # update in the database
               self.putCube (ch, key, resolution, cube)
 
       else:
+
         for z in range(znumcubes):
           for y in range(ynumcubes):
             for x in range(xnumcubes):
-              for timestamp in range(timerange[0], timerange[1]+1, 1):
+              for timestamp in range(timerange[0], timerange[1], 1):
                 print x, y, z, timestamp, timerange
                 zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
-                if not blind:
+                if False:
+                  import pdb; pdb.set_trace()
                   cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
                   # overwrite the cube
                   cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
                 else:
-                  cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
-                  cube.data = databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim]
+                  import pdb; pdb.set_trace()
+                  cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange)
+                  cube.zeros()
+                  cube.data = databuffer[timestamp:timestamp+1, z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim]
 
-                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
-                cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
                 # overwrite the cube
                 cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
                 # update in the database

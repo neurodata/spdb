@@ -21,7 +21,7 @@ logger=logging.getLogger("neurodata")
 
 class TimeCube32(TimeCube):
 
-  def __init__(self, cube_size=[128,128,16], time_range=[0,0]):
+  def __init__(self, cube_size=[128,128,16], time_range=[0,1]):
     """Create empty array of cubesize"""
 
     # call the base class constructor

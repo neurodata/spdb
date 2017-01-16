@@ -20,6 +20,9 @@ import logging
 logger=logging.getLogger("neurodata")
 
 
+#RBTODO fix transaction support for putcubes
+
+
 """Helpers function to do cube I/O in across multiple DBs.
     This uses the state and methods of spatialdb"""
 
@@ -207,27 +210,31 @@ class MySQLKVIO(KVIO):
       cursor.close()
 
 
-  def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
-    """Store multiple cubes into the database"""
-
-    cursor = self.conn.cursor()
-    
-    sql = "REPLACE INTO {} (zindex,cube) VALUES (%s,%s)".format(ch.getTable(resolution))
-
-    try:
-      cursor.executemany(sql, zip(listofidxs, listofcubes))
-    
-    except MySQLdb.Error, e:
-      logger.error("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-      raise SpatialDBError("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-    
-    finally:
-      # close the local cursor if not in a transaction and commit right away
-      cursor.close()
-    
-    # commit if not in a txn
-    self.conn.commit()
+#
+#  No timestamp support.  Run put cube in txn mode.
+#
+#  def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
+#    """Store multiple cubes into the database"""
+#
+#    cursor = self.conn.cursor()
+#    
+#    sql = "REPLACE INTO {} (zindex,cube) VALUES (%s,%s)".format(ch.getTable(resolution))
+#
+#    try:
+#      cursor.executemany(sql, zip(listofidxs, listofcubes))
+#    
+#    except MySQLdb.Error, e:
+#      logger.error("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
+#      raise SpatialDBError("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
+#    
+#    finally:
+#      # close the local cursor if not in a transaction and commit right away
+#      cursor.close()
+#    
+#    # commit if not in a txn
+#    self.conn.commit()
   
+
   def putCube ( self, ch, zidx, resolution, cubestr, update=False, timestamp=0 ):
     """Store a cube from the annotation database"""
 

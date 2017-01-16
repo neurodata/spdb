@@ -24,8 +24,6 @@ class TimeCube(Cube):
     # cubesize is in z,y,x for interactions with tile/image data
     self.zdim, self.ydim, self.xdim = self.cubesize = [cube_size[2], cube_size[1], cube_size[0]]
     self.time_range = time_range
-    # RB this next line is not typed and produces floats.  Cube needs to be created in the derived classes
-    # self.data = np.empty ( self.cubesize )
     self._newcube = False
   
   # @override(Cube)

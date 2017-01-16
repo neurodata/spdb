@@ -18,7 +18,7 @@ import cStringIO
 import blosc
 from abc import abstractmethod
 from ndlib.ndctypelib import  overwriteDense_ctype
-from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, DTYPE_uint8, DTYPE_uint16, DTYPE_uint32, DTYPE_uint64, DTYPE_float32
+from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, DTYPE_uint8, DTYPE_uint16, DTYPE_uint32, DTYPE_uint64, DTYPE_float32, DTYPE_int8, DTYPE_int16, DTYPE_int32 
 from spdb.spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
@@ -39,9 +39,6 @@ class Cube(object):
     # self.data = np.empty ( self.cubesize )
     self._newcube = False
   
-  def zeros(self):
-    self._newcube = True
-
   def fromZeros ( self ):
     """Determine if the cube was created from all zeros?"""
     if self._newcube == True:
@@ -163,7 +160,7 @@ class Cube(object):
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
       from anncube32 import AnnotateCube32
       return AnnotateCube32(cubedim)
-    elif channel_type in TIMESERIES_CHANNELS and timerange is not None:
+    elif channel_type in TIMESERIES_CHANNELS:
       if datatype in DTYPE_uint8:
         from timecube8 import TimeCube8
         return TimeCube8(cubedim, timerange)
@@ -173,6 +170,15 @@ class Cube(object):
       elif datatype in DTYPE_uint32:
         from timecube32 import TimeCube32 
         return TimeCube32(cubedim, timerange)
+      elif datatype in DTYPE_int8:
+        from timecubeI8 import TimeCubeI8
+        return TimeCubeI8(cubedim, timerange)
+      elif datatype in DTYPE_int16:
+        from timecubeI16 import TimeCubeI16 
+        return TimeCubeI16(cubedim, timerange)
+      elif datatype in DTYPE_int32:
+        from timecubeI32 import TimeCubeI32 
+        return TimeCubeI32(cubedim, timerange)
       elif datatype in DTYPE_float32:
         from timecubefloat32 import TimeCubeFloat32
         return TimeCubeFloat32(cubedim, timerange)
@@ -192,4 +198,5 @@ class Cube(object):
       from imagecubefloat32 import ImageCubeFloat32
       return ImageCubeFloat32(cubedim)
     else:
-      return Cube(cubedim)
+      logger.error("Could not find a cube type for this channel.  Bad channel type?")
+      raise SpatialDBError("Could not find a cube type for this channel.  Bad channel type?")
