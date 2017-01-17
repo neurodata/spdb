@@ -80,7 +80,6 @@ class Cube(object):
     
     try:
       self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( compressed_data[:] ) ) )
-      self.zdim, self.ydim, self.xdim = self.data.shape
     except:
       logger.error("Failed to decompress database cube. Data integrity concern.")
       raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")

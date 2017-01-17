@@ -14,6 +14,10 @@
 
 import numpy as np
 from cube import Cube
+from ndlib.ndctypelib import  overwriteDense_ctype
+
+import logging
+logger = logging.getLogger("neurodata")
 
 
 class TimeCube(Cube):
@@ -41,6 +45,16 @@ class TimeCube(Cube):
   def trim(self, xoffset, xsize, yoffset, ysize, zoffset, zsize):
     """Trim off the excess data"""
     self.data = self.data[:, zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize]
+
+  def overwrite(self, timestamp, write_data):
+    """Get's a dense voxel region and overwrites all non-zero values"""
+
+    if (self.data.dtype != write_data.dtype ):
+      logger.error("Conflicting data types for overwrite")
+      raise SpatialDBError ("Conflicting data types for overwrite")
+
+    self.data[timestamp,:] = overwriteDense_ctype(self.data[timestamp,:], write_data)
+
 
   def zeros(self):
     """Create a cube of all zeros"""

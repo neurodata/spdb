@@ -83,7 +83,7 @@ class SpatialDB:
     cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, [0,1])
   
     # get the block from the database
-    cube_str = self.kvio.getCube(ch, zidx, resolution, update=update)
+    cube_str = self.kvio.getCube(ch, zidx, resolution, update=update, timestamp=timestamp)
 
     if not cube_str:
       cube.zeros()
@@ -99,7 +99,7 @@ class SpatialDB:
   @ReaderLock
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
-     
+
     if listoftimestamps is None:
       if self.proj.s3backend == S3_TRUE:
         ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
@@ -1140,21 +1140,14 @@ class SpatialDB:
           for y in range(ynumcubes):
             for x in range(xnumcubes):
               for timestamp in range(timerange[0], timerange[1], 1):
-                print x, y, z, timestamp, timerange
-                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
-                if False:
-                  import pdb; pdb.set_trace()
-                  cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
-                  # overwrite the cube
-                  cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
-                else:
-                  import pdb; pdb.set_trace()
-                  cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange)
-                  cube.zeros()
-                  cube.data = databuffer[timestamp:timestamp+1, z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim]
 
-                # overwrite the cube
-                cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
+                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
+
+                cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
+
+                # overwrite the cube -- one timestamp in cube so write to time 0
+                cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
+
                 # update in the database
                 self.putCube(ch, zidx, resolution, cube, timestamp)
 

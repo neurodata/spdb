@@ -138,7 +138,7 @@ class MySQLKVIO(KVIO):
 
   
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
-
+  
     cursor = self.conn.cursor()
 
     if ch.channel_type == OLDCHANNEL:
@@ -242,6 +242,7 @@ class MySQLKVIO(KVIO):
 
     # we created a cube from zeros
     if not update:
+
       sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
 
       # this uses a cursor defined in the caller (locking context): not beautiful, but needed for locking

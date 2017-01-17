@@ -27,10 +27,11 @@ class TimeCube16(TimeCube):
     # note that this is self.cubesize (which is transposed) in Cube
     self.data = np.zeros ([self.time_range[1]-self.time_range[0]]+self.cubesize, dtype=np.uint16)
 
-  def zeros ( self ):
-    """Create a cube of all 0"""
+  def zeros(self):
+    """Create a cube of all zeros"""
     super(TimeCube16, self).zeros()
-    self.data = np.zeros ( self.cubesize, dtype=np.uint16 )
+    self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint16)
+
 
   def xyImage ( self ):
     """Create xy slice"""

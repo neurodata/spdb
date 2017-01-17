@@ -29,7 +29,8 @@ class TimeCube32(TimeCube):
     # note that this is self.cubesize (which is transposed) in Cube
     self.data = np.zeros ([self.time_range[1]-self.time_range[0]]+self.cubesize, dtype=np.uint32)
 
-  def zeros ( self ):
-    """Create a cube of all 0"""
+  def zeros(self):
+    """Create a cube of all zeros"""
     super(TimeCube32, self).zeros()
-    self.data = np.zeros ( self.cubesize, dtype=np.uint32 )
+    self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint32)
+
