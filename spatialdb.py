@@ -1073,9 +1073,9 @@ class SpatialDB:
 #    self.kvio.commit()
 
 
-  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=None):
+  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,1]):
     """
-    Write a 3D/4D volume to the key-value store.
+    Write a 4D volume to the key-value store.
 
     :param ch: Channel to write data to
     :type ch: Class Channel
@@ -1091,11 +1091,7 @@ class SpatialDB:
     :returns: None
     """
    
-    # dim is in xyz, data is in zyx order
-    if timerange == None: 
-      dim = cuboiddata.shape[::-1]
-    else:
-      dim = cuboiddata.shape[::-1][:-1]
+    dim = cuboiddata.shape[::-1][:-1]
 
     # get the size of the image and cube
     [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim[resolution]
@@ -1109,47 +1105,26 @@ class SpatialDB:
 
     offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
     
-    if timerange == None:
-      databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-      databuffer[zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
-    else:
-      databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-      databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
-
+    databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+    databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
 
     self.kvio.startTxn()
 
     try:
-      if timerange == None:
-        for z in range(znumcubes):
-          for y in range(ynumcubes):
-            for x in range(xnumcubes):
-  
-              key = XYZMorton ([x+xstart,y+ystart,z+zstart])
+      for z in range(znumcubes):
+        for y in range(ynumcubes):
+          for x in range(xnumcubes):
+            for timestamp in range(timerange[0], timerange[1], 1):
 
-              cube = self.getCube (ch, key, resolution, update=True)
+              zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
 
-              # overwrite the cube
-              cube.overwrite ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+              cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
+
+              # overwrite the cube -- one timestamp in cube so write to time 0
+              cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
+
               # update in the database
-              self.putCube (ch, key, resolution, cube)
-
-      else:
-
-        for z in range(znumcubes):
-          for y in range(ynumcubes):
-            for x in range(xnumcubes):
-              for timestamp in range(timerange[0], timerange[1], 1):
-
-                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
-
-                cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
-
-                # overwrite the cube -- one timestamp in cube so write to time 0
-                cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
-
-                # update in the database
-                self.putCube(ch, zidx, resolution, cube, timestamp)
+              self.putCube(ch, zidx, resolution, cube, timestamp)
 
     except:
       self.kvio.rollback()

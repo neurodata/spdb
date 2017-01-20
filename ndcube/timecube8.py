@@ -34,19 +34,37 @@ class TimeCube8(TimeCube):
 
   def xyImage ( self ):
     """Create xy slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
-    return Image.frombuffer ( 'L', (xdim,ydim), self.data[0,0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      return Image.frombuffer ( 'L', (xdim,ydim), self.data[0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+      return Image.frombuffer ( 'L', (xdim,ydim), self.data[0,0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
 
   def xzImage ( self, zscale ):
     """Create xz slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
-    outimage = Image.frombuffer ( 'L', (xdim,zdim), self.data[0,:,0,:].flatten(), 'raw', 'L', 0, 1 ) 
-    #if the image scales to 0 pixels it don't work
-    return outimage.resize ( [xdim, int(zdim*zscale)] )
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      outimage = Image.frombuffer ( 'L', (xdim,zdim), self.data[:,0,:].flatten(), 'raw', 'L', 0, 1 ) 
+      # if the image scales to 0 pixels it don't work
+      return outimage.resize ( [xdim, int(zdim*zscale)] )
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+      outimage = Image.frombuffer ( 'L', (xdim,zdim), self.data[0,:,0,:].flatten(), 'raw', 'L', 0, 1 ) 
+      #if the image scales to 0 pixels it don't work
+      return outimage.resize ( [xdim, int(zdim*zscale)] )
 
   def yzImage ( self, zscale ):
     """Create yz slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
-    outimage = Image.frombuffer ( 'L', (ydim,zdim), self.data[0,:,:,0].flatten(), 'raw', 'L', 0, 1 ) 
-    #if the image scales to 0 pixels it don't work
-    return outimage.resize ( [ydim, int(zdim*zscale)] )
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      outimage = Image.frombuffer ( 'L', (ydim,zdim), self.data[:,:,0].flatten(), 'raw', 'L', 0, 1 ) 
+      # if the image scales to 0 pixels it don't work
+      return outimage.resize ( [ydim, int(zdim*zscale)] )
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+      outimage = Image.frombuffer ( 'L', (ydim,zdim), self.data[0,:,:,0].flatten(), 'raw', 'L', 0, 1 ) 
+      #if the image scales to 0 pixels it don't work
+      return outimage.resize ( [ydim, int(zdim*zscale)] )

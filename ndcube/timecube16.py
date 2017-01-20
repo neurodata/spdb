@@ -32,35 +32,42 @@ class TimeCube16(TimeCube):
     super(TimeCube16, self).zeros()
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint16)
 
-
   def xyImage ( self ):
     """Create xy slice"""
-    # This works for 16-> conversions
-    zdim,ydim,xdim = self.data.shape[1:]
-    if self.data.dtype == np.uint8:  
-      return Image.frombuffer ( 'L', (xdim,ydim), self.data[0,0,:,:].flatten(), 'raw', 'L', 0, 1)
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      return Image.frombuffer ( 'I;16', (xdim,ydim), self.data[0,:,:].flatten(), 'raw', 'I;16', 0, 1 ) 
     else:
-      outimage = Image.frombuffer ( 'I;16', (xdim,ydim), self.data[0,0,:,:].flatten(), 'raw', 'I;16', 0, 1)
-      return outimage.point(lambda i:i*(1./256)).convert('L')
+      zdim,ydim,xdim = self.data.shape[1:]
+      return Image.frombuffer ( 'I;16', (xdim,ydim), self.data[0,0,:,:].flatten(), 'raw', 'I;16', 0, 1 ) 
 
   def xzImage ( self, zscale ):
     """Create xz slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
-    if self.data.dtype == np.uint8:  
-      outimage = Image.frombuffer ( 'L', (xdim,zdim), self.data[0,:,0,:].flatten(), 'raw', 'L', 0, 1)
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      outimage = Image.frombuffer ( 'I;16', (xdim,zdim), self.data[:,0,:].flatten(), 'raw', 'I;16', 0, 1 ) 
+      # if the image scales to 0 pixels it don't work
+      return outimage.resize ( [xdim, int(zdim*zscale)] )
     else:
-      outimage = Image.frombuffer ( 'I;16', (xdim,zdim), self.data[0,:,0,:].flatten(), 'raw', 'I;16', 0, 1)
-      outimage = outimage.point(lambda i:i*(1./256)).convert('L')
-    
-    return  outimage.resize ( [xdim, int(zdim*zscale)] )
+      zdim,ydim,xdim = self.data.shape[1:]
+      outimage = Image.frombuffer ( 'I;16', (xdim,zdim), self.data[0,:,0,:].flatten(), 'raw', 'I;16', 0, 1 ) 
+      #if the image scales to 0 pixels it don't work
+      return outimage.resize ( [xdim, int(zdim*zscale)] )
 
   def yzImage ( self, zscale ):
     """Create yz slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
-    if self.data.dtype == np.uint8:  
-      outimage = Image.frombuffer ( 'L', (ydim,zdim), self.data[0,:,:,0].flatten(), 'raw', 'L', 0, 1)
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      outimage = Image.frombuffer ( 'I;16', (ydim,zdim), self.data[:,:,0].flatten(), 'raw', 'I;16', 0, 1 ) 
+      # if the image scales to 0 pixels it don't work
+      return outimage.resize ( [ydim, int(zdim*zscale)] )
     else:
-      outimage = Image.frombuffer ( 'I;16', (ydim,zdim), self.data[0,:,:,0].flatten(), 'raw', 'I;16', 0, 1)
-      outimage = outimage.point(lambda i:i*(1./256)).convert('L')
-    
-    return outimage.resize ( [ydim, int(zdim*zscale)] )
+      zdim,ydim,xdim = self.data.shape[1:]
+      outimage = Image.frombuffer ( 'I;16', (ydim,zdim), self.data[0,:,:,0].flatten(), 'raw', 'I;16', 0, 1 ) 
+      #if the image scales to 0 pixels it don't work
+      return outimage.resize ( [ydim, int(zdim*zscale)] )
+
+

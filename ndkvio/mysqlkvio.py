@@ -58,26 +58,25 @@ class MySQLKVIO(KVIO):
   def startTxn ( self ):
     """Start a transaction.  Ensure database is in multi-statement mode."""
     
-    pass
-    # self.txncursor = self.conn.cursor()
-    # sql = "START TRANSACTION"
-    # self.txncursor.execute ( sql )
+    self.txncursor = self.conn.cursor()
+    sql = "START TRANSACTION"
+    self.txncursor.execute ( sql )
 
   def commit ( self ):
     """Commit the transaction.  Moved out of del to make explicit.""" 
-    pass
-    # if self.txncursor:
-      # self.conn.commit()
-      # self.txncursor.close()
-      # self.txncursor = None
+
+    if self.txncursor:
+      self.conn.commit()
+      self.txncursor.close()
+      self.txncursor = None
 
   def rollback ( self ):
     """Rollback the transaction.  To be called on exceptions."""
-    pass
-    # if self.txncursor:
-      # self.conn.rollback()
-      # self.txncursor.close()
-      # self.txncursor = None
+
+    if self.txncursor:
+      self.conn.rollback()
+      self.txncursor.close()
+      self.txncursor = None
   
 
   def getChannelId(self, ch):
@@ -110,8 +109,12 @@ class MySQLKVIO(KVIO):
   def getCube(self, ch, zidx, resolution, update=False, timestamp=0):
     """Retrieve a cube from the database by token, resolution, and zidx"""
 
-    cursor = self.conn.cursor()
-    
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
+   
     if ch.channel_type == OLDCHANNEL:
       channel_id = self.getChannelId(ch)
       sql = "SELECT cube FROM {} WHERE (channel,zindex) = ({},{})".format(ch.getTable(resolution), channel_id, zidx)
@@ -126,9 +129,11 @@ class MySQLKVIO(KVIO):
     except MySQLdb.Error, e:
       logger.error("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-    finally:
-      cursor.close()
 
+    # commit if not in a txn
+    if self.txncursor is None:
+      self.conn.commit()
+      cursor.close()
     
     # If we can't find a cube, assume it hasn't been written yet
     if row is None:
@@ -139,8 +144,12 @@ class MySQLKVIO(KVIO):
   
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
   
-    cursor = self.conn.cursor()
-
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
+   
     if ch.channel_type == OLDCHANNEL:
       channel_id = self.getChannelId(ch)
       sql = "SELECT zindex,cube FROM {} where channel={} and zindex in (%s)".format( ch.getTable(resolution), channel_id)
@@ -173,14 +182,21 @@ class MySQLKVIO(KVIO):
       logger.error("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
 
-    finally:
-      cursor.close()
 
+    finally:
+      # close the local cursor if not in a transaction
+      if self.txncursor is None:
+        cursor.close()
+   
   
   def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
 
-    cursor = self.conn.cursor()
-
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
+   
     sql = "SELECT zindex,timestamp,cube FROM {} WHERE zindex={} and timestamp in (%s)".format(ch.getTable(resolution), idx)
 
     # creats a %s for each list element
@@ -207,8 +223,10 @@ class MySQLKVIO(KVIO):
       raise SpatialDBError("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
  
     finally:
-      cursor.close()
-
+      # close the local cursor if not in a transaction
+      if self.txncursor is None:
+        cursor.close()
+   
 
 #
 #  No timestamp support.  Run put cube in txn mode.
@@ -238,39 +256,40 @@ class MySQLKVIO(KVIO):
   def putCube ( self, ch, zidx, resolution, cubestr, update=False, timestamp=0 ):
     """Store a cube from the annotation database"""
 
-    cursor = self.conn.cursor()
+    # if in a TxN us the transaction cursor.  Otherwise create one.
+    if self.txncursor is None:
+      cursor = self.conn.cursor()
+    else:
+      cursor = self.txncursor
 
-    # we created a cube from zeros
-    if not update:
+    try:
+      # we created a cube from zeros
+      if not update:
 
-      sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
+        sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
 
-      # this uses a cursor defined in the caller (locking context): not beautiful, but needed for locking
-      try:
+        # this uses a cursor defined in the caller (locking context): not beautiful, but needed for locking
         cursor.execute ( sql, (zidx, timestamp, cubestr) ) 
       
-      except MySQLdb.Error, e:
-        logger.error("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-        raise SpatialDBError("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-      
-      finally:
-        cursor.close()
+      else:
 
-    else:
-      sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
+        sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
       
-      try:
         cursor.execute( sql, (cubestr,) )
       
-      except MySQLdb.Error, e:
-        logger.error("Error updating data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-        raise SpatialDBError("Error updating data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-      
-      finally:
+
+    except MySQLdb.Error, e:
+      logger.error("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
+      raise SpatialDBError("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
+    
+    finally:
+
+      # close the local cursor if not in a transaction
+      if self.txncursor is None:
         cursor.close()
 
-    # commit if not in a txn
-    self.conn.commit()
+        # commit if not in a txn
+        self.conn.commit()
 
 
   def getIndex ( self, ch, annid, resolution, update ):
