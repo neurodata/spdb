@@ -14,43 +14,32 @@
 
 from PIL import Image
 from ndctypelib import *
-from cube import Cube
+from timecube import TimeCube
 from spatialdberror import SpatialDBError 
 import logging
 logger=logging.getLogger("neurodata")
 
 
-class AnnotateCube32(Cube):
-  """AnnotateCube: manipulate the in-memory data representation of the 3-d cube of data that contains annotations"""
+class AnnotateCube32(TimeCube):
+  """AnnotateCube: manipulate the in-memory data representation of the 4-d cube of data that contains annotations"""
 
-  def __init__(self, cubesize):
-    """Create empty array of cubesize[x,y,z]"""
+  def __init__(self, cube_size=[128,128,16], time_range=[0,1]):
+    """Create empty array of cubesize"""
 
     # call the base class constructor
-    Cube.__init__( self, cubesize )
-    self.data = np.zeros(self.cubesize, dtype=np.uint32)
-    # variable that describes when a cube is created from zeros rather than loaded from another source
-    self._newcube = False
+    super(AnnotateCube32, self).__init__(cube_size, time_range)
+    # note that this is self.cubesize (which is transposed) in Cube
+    self.data = np.zeros ([self.time_range[1]-self.time_range[0]]+self.cubesize, dtype=np.uint32)
 
 
-  def getVoxel ( self, voxel ):
+  def getVoxel ( self, voxel, timestamp=0 ):
     """Return the value at the voxel specified as [x,y,z]"""
-    return self.data [ voxel[2], voxel[1], voxel[0] ]
+    return self.data [ timestamp, voxel[2], voxel[1], voxel[0] ]
 
-
-  def fromZeros ( self ):
-    """Determine if the cube was created from all zeros?"""
-    if self._newcube == True:
-      return True
-    else: 
-      return False
-
-
-  def zeros ( self ):
-    """Create a cube of all 0"""
-    self._newcube = True
-    self.data = np.zeros ( self.cubesize, dtype=np.uint32 )
-
+  def zeros(self):
+    """Create a cube of all zeros"""
+    super(AnnotateCube32, self).zeros()
+    self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint32)
 
   # Add annotations
   #
@@ -61,27 +50,31 @@ class AnnotateCube32(Cube):
   #
   #  Exceptions are uint8 to keep them small.  Max cube size is 256^3.
   #
-  def annotate ( self, annid, offset, locations, conflictopt ):
+  def annotate ( self, annid, offset, locations, conflictopt, timestamp=0 ):
     """Add annotation by a list of locations"""
 
     try:
-      self.data, exceptions = annotate_ctype( self.data, annid, offset, np.array(locations, dtype=np.uint32), conflictopt )
+      self.data, exceptions = annotate_ctype( self.data[timestamp,:,:,:], annid, offset, np.array(locations, dtype=np.uint32), conflictopt )
       return exceptions
     except IndexError, e:
       raise SpatialDBError ("Voxel list includes out of bounds request.")
 
 
-  def shave ( self, annid, offset, locations ):
+  def shave ( self, annid, offset, locations, timestamp=0 ):
     """Remove annotation by a list of locations"""
 
-    self.data , exceptions, zeroed = shave_ctype ( self.data, annid, offset, np.array(locations, dtype=np.uint32))
+    self.data , exceptions, zeroed = shave_ctype ( self.data[timestamp,:,:,:], annid, offset, np.array(locations, dtype=np.uint32))
     return exceptions, zeroed
 
 
   def xyImage ( self ):
     """Create the specified slice (index)"""
 
-    zdim,ydim,xdim = self.data.shape
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+
     imagemap = np.zeros ( [ ydim, xdim ], dtype=np.uint32 )
 
     # false color redrawing of the region
@@ -93,7 +86,11 @@ class AnnotateCube32(Cube):
   def xzImage ( self, scale ):
     """Create the specified slice (index)"""
 
-    zdim,ydim,xdim = self.data.shape
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+
     imagemap = np.zeros ( [ zdim, xdim ], dtype=np.uint32 )
 
     # false color redrawing of the region
@@ -106,7 +103,11 @@ class AnnotateCube32(Cube):
   def yzImage ( self, scale ):
     """Create the specified slice (index)"""
 
-    zdim,ydim,xdim = self.data.shape
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+
     imagemap = np.zeros ( [ zdim, ydim ], dtype=np.uint32 )
 
     # false color redrawing of the region
@@ -116,28 +117,28 @@ class AnnotateCube32(Cube):
     return  outimage.resize ( [ydim, int(zdim*scale)] )
 
 
-  def preserve ( self, annodata ):
+  def preserve ( self, annodata, tiemstamp=0 ):
     """Get's a dense voxel region and overwrites all non-zero values"""
-    self.data = exceptionDense_ctype ( self.data, annodata )
+    self.data = exceptionDense_ctype ( self.data[timestamp,:,:], annodata )
 
-  def exception ( self, annodata ):
+  def exception ( self, annodata, timestamp=0 ):
     """Get's a dense voxel region and overwrites all non-zero values"""
 
     # get all the exceptions not equal and both annotated
-    exdata = ((self.data-annodata)*self.data*annodata!=0) * annodata 
-    self.data = exceptionDense_ctype ( self.data, annodata )
+    exdata = ((self.data[timestamp,:,:,:]-annodata)*self.data*annodata!=0) * annodata 
+    self.data = exceptionDense_ctype ( self.data[timestamp,:,:,:], annodata[0,:,:,:] )
 
     # return the list of exceptions ids and the exceptions
     return exdata
 
-  def shaveDense ( self, annodata ):
+  def shaveDense ( self, annodata, timestamp ):
     """Remove the specified voxels from the annotation"""
 
     # get all the exceptions that are equal to the annid in both datasets
-    shavedata = ((self.data-annodata)==0) * annodata 
+    shavedata = ((self.data[timestamp,:,:,:]-annodata)==0) * annodata 
 
     # find all shave requests that don't match the dense data
-    exdata = (self.data != annodata) * annodata
+    exdata = (self.data[timestamp,:,:,:] != annodata) * annodata
     self.data = shaveDense_ctype ( self.data, shavedata )
 
     return exdata
@@ -145,6 +146,7 @@ class AnnotateCube32(Cube):
   
   def zoomData ( self, factor ):
     """ Cube data zoomed in """
+    assert 0  # timestampe TODO
 
     newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]*(2**factor), self.data.shape[2]*(2**factor)], dtype=np.uint32) 
     zoomInData_ctype_OMP ( self.data, newdata, int(factor) )
@@ -153,6 +155,7 @@ class AnnotateCube32(Cube):
   
   def downScale ( self, factor ):
     """ Cube data zoomed out """
+    assert 0 # timestamp TODO
 
     newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]/(2**factor), self.data.shape[2]/(2**factor)], dtype=np.uint32) 
     zoomOutData_ctype ( self.data, newdata, int(factor) )

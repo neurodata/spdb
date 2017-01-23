@@ -52,22 +52,23 @@ class MySQLKVIndex(KVIndex):
     return '{}_res{}_index'.format(ch.getChannelName(), resolution)
 
 
-  def getCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
+  def getCubeIndex(self, ch, resolution, listofidxs, timestamp):
     
     cursor = self.conn.cursor()
     
-    if listoftimestamps:
-      sql = "SELECT zindex, timestamp FROM {} WHERE zindex={} and timestamp in (%s)".format(self.getIndexStore(ch, resolution), listofidxs[0])
-    else:
-      sql = "SELECT zindex FROM {} WHERE zindex in (%s)".format(self.getIndexStore(ch, resolution)) 
+#    if listoftimestamps:
+#      sql = "SELECT zindex, timestamp FROM {} WHERE zindex={} and timestamp in (%s)".format(self.getIndexStore(ch, resolution), listofidxs[0])
+#    else:
+
+    sql = "SELECT zindex FROM {} WHERE zindex in (%s) AND timestamp = {}".format(self.getIndexStore(ch, resolution),timestamp) 
 
     # creats a %s for each list element
-    in_p=', '.join(map(lambda x: '%s', listoftimestamps if listoftimestamps else listofidxs))
+    in_p=', '.join(map(lambda x: '%s', listofidxs))
     # replace the single %s with the in_p string
     sql = sql % in_p
 
     try:
-      rc = cursor.execute(sql, listoftimestamps if listoftimestamps else listofidxs)
+      rc = cursor.execute(sql, listofidxs)
       ids_existing = cursor.fetchall()
       if ids_existing:
         ids_to_fetch = Set(listofidxs).difference( Set(i[0] for i in ids_existing))
@@ -84,17 +85,18 @@ class MySQLKVIndex(KVIndex):
       cursor.close()
 
   
-  def putCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
+  def putCubeIndex(self, ch, resolution, listofidxs, timestamp):
     
     cursor = self.conn.cursor()
     
-    if listoftimestamps:
-      sql = "REPLACE INTO {} (zindex, timestamp) VALUES (%s,%s)".format(self.getIndexStore(ch, resolution))
-    else:  
-      sql = "REPLACE INTO {} VALUE (%s)".format(self.getIndexStore(ch, resolution))
+#    if listoftimestamps:
+#      sql = "REPLACE INTO {} (zindex, timestamp) VALUES (%s,%s)".format(self.getIndexStore(ch, resolution))
+#    else:  
+
+    sql = "REPLACE INTO {} (zindex, timestamp VALUE (%s,{})".format(self.getIndexStore(ch, resolution), timestamp)
     
     try:
-      cursor.executemany(sql, zip(listofidxs*len(listoftimestamps), listoftimestamps) if listoftimestamps else listofidxs)
+      cursor.executemany(sql, listofidxs)
     
     except MySQLdb.Error, e:
       logger.error("Error inserting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))

@@ -292,7 +292,7 @@ class MySQLKVIO(KVIO):
         self.conn.commit()
 
 
-  def getIndex ( self, ch, annid, resolution, update ):
+  def getIndex ( self, ch, annid, resolution, update, timestamp=0 ):
     """MySQL fetch index routine"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -302,7 +302,7 @@ class MySQLKVIO(KVIO):
       cursor = self.txncursor
 
     # get the block from the database                                            
-    sql = "SELECT cube FROM {} WHERE annid = {}".format( ch.getIdxTable(resolution), annid )
+    sql = "SELECT cube FROM {} WHERE annid = {} AND timestamp = {}".format( ch.getIdxTable(resolution), annid, timestamp )
     if update:
       sql += " FOR UPDATE"
     
@@ -330,7 +330,7 @@ class MySQLKVIO(KVIO):
        return row[0]
 
 
-  def putIndex ( self, ch, zidx, resolution, indexstr, update ):
+  def putIndex ( self, ch, zidx, resolution, indexstr, update, timestamp=0 ):
     """MySQL put index routine"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -340,10 +340,10 @@ class MySQLKVIO(KVIO):
       cursor = self.txncursor
 
     if not update:
-      sql = "INSERT INTO {} ( annid, cube) VALUES ( %s, %s )".format( ch.getIdxTable(resolution) )
+      sql = "INSERT INTO {} ( annid, timestamp, cube) VALUES ( %s, %s, %s )".format( ch.getIdxTable(resolution) )
       
       try:
-         cursor.execute ( sql, (zidx,indexstr) )
+         cursor.execute ( sql, (zidx, timestamp, indexstr) )
       
       except MySQLdb.Error, e:
          logger.error("Error updating index {}: {}. sql={}".format(e.args[0], e.args[1], sql))
