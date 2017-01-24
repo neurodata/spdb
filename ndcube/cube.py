@@ -154,7 +154,7 @@ class Cube(object):
 
   # factory method for cube
   @staticmethod
-  def CubeFactory(cubedim, channel_type, datatype, timerange=None):
+  def CubeFactory(cubedim, channel_type, datatype, timerange=[0,1]):
     
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
       from anncube32 import AnnotateCube32
@@ -181,21 +181,6 @@ class Cube(object):
       elif datatype in DTYPE_float32:
         from timecubefloat32 import TimeCubeFloat32
         return TimeCubeFloat32(cubedim, timerange)
-    elif datatype in DTYPE_uint8:
-      from imagecube8 import ImageCube8
-      return ImageCube8(cubedim)
-    elif datatype in DTYPE_uint16:
-      from imagecube16 import ImageCube16
-      return ImageCube16(cubedim)
-    elif datatype in DTYPE_uint32:
-      from imagecube32 import ImageCube32
-      return ImageCube32(cubedim)
-    elif datatype in DTYPE_uint64:
-      from imagecube64 import ImageCube64
-      return ImageCube64(cubedim)
-    elif datatype in DTYPE_float32:
-      from imagecubefloat32 import ImageCubeFloat32
-      return ImageCubeFloat32(cubedim)
     else:
       logger.error("Could not find a cube type for this channel.  Bad channel type?")
       raise SpatialDBError("Could not find a cube type for this channel.  Bad channel type?")

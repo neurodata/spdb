@@ -106,7 +106,7 @@ class MySQLKVIO(KVIO):
     else: 
       return row[0]
 
-  def getCube(self, ch, zidx, resolution, update=False, timestamp=0):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -253,9 +253,9 @@ class MySQLKVIO(KVIO):
 #    self.conn.commit()
   
 
-  def putCube ( self, ch, zidx, resolution, cubestr, update=False, timestamp=0 ):
+  def putCube ( self, ch, timestamp, zidx, resolution, cubestr, update=False):
     """Store a cube from the annotation database"""
-
+    
     # if in a TxN us the transaction cursor.  Otherwise create one.
     if self.txncursor is None:
       cursor = self.conn.cursor()
@@ -279,6 +279,7 @@ class MySQLKVIO(KVIO):
       
 
     except MySQLdb.Error, e:
+      import pdb; pdb.set_trace()
       logger.error("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     
@@ -292,7 +293,7 @@ class MySQLKVIO(KVIO):
         self.conn.commit()
 
 
-  def getIndex ( self, ch, annid, resolution, update, timestamp=0 ):
+  def getIndex ( self, ch, annid, timestamp, resolution, update ):
     """MySQL fetch index routine"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -330,7 +331,7 @@ class MySQLKVIO(KVIO):
        return row[0]
 
 
-  def putIndex ( self, ch, zidx, resolution, indexstr, update, timestamp=0 ):
+  def putIndex ( self, ch, zidx, timestamp, resolution, indexstr, update ):
     """MySQL put index routine"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -415,7 +416,7 @@ class MySQLKVIO(KVIO):
       self.conn.commit()
 
 
-  def getExceptions ( self, ch, zidx, resolution, annid ):
+  def getExceptions ( self, ch, zidx, timestamp, resolution, annid ):
     """Load a the list of excpetions for this cube."""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -425,7 +426,7 @@ class MySQLKVIO(KVIO):
       cursor = self.txncursor
 
     # get the block from the database
-    sql = "SELECT exlist FROM {} where zindex={} AND id={}".format( ch.getExceptionsTable(resolution), zidx, annid )
+    sql = "SELECT exlist FROM {} where zindex={} AND timestamp={} AND id={}".format( ch.getExceptionsTable(resolution), zidx, timestamp, annid )
     try:
       cursor.execute(sql)
       row = cursor.fetchone()
@@ -446,7 +447,7 @@ class MySQLKVIO(KVIO):
       return row[0] 
 
 
-  def deleteExceptions ( self, ch, zidx, resolution, annid ):
+  def deleteExceptions ( self, ch, zidx, timestamp, resolution, annid ):
     """Delete a list of exceptions for this cuboid"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -455,7 +456,7 @@ class MySQLKVIO(KVIO):
     else:
       cursor = self.txncursor
 
-    sql = "DELETE FROM {} WHERE zindex ={} AND id ={}".format( ch.getExceptionsTable(resolution), zidx, annid ) 
+    sql = "DELETE FROM {} WHERE zindex ={} AND timestamp={} AND id ={}".format( ch.getExceptionsTable(resolution), zidx, timestamp, annid ) 
     try:
       cursor.execute ( sql )
     
@@ -472,7 +473,7 @@ class MySQLKVIO(KVIO):
         cursor.close()
 
 
-  def putExceptions ( self, ch, zidx, resolution, annid, excstr, update=False ):
+  def putExceptions ( self, ch, zidx, timestamp, resolution, annid, excstr, update=False ):
     """Store a list of exceptions"""
     """This should be done in a transaction"""
 
@@ -485,9 +486,9 @@ class MySQLKVIO(KVIO):
 
     if not update:
 
-      sql = "INSERT INTO {} (zindex, id, exlist) VALUES (%s, %s, %s)".format( ch.getExceptionsTable(resolution) )
+      sql = "INSERT INTO {} (zindex, timestamp, id, exlist) VALUES (%s, %s, %s, %s)".format( ch.getExceptionsTable(resolution) )
       try:
-        cursor.execute ( sql, (zidx, annid, excstr))
+        cursor.execute ( sql, (zidx, timestamp, annid, excstr))
       except MySQLdb.Error, e:
         if self.txncursor is None:
           cursor.close()
@@ -498,9 +499,9 @@ class MySQLKVIO(KVIO):
     # In this case we have an update query
     else:
 
-      sql = "UPDATE {} SET exlist=(%s) WHERE zindex=%s AND id=%s".format( ch.getExceptionsTable(resolution) )
+      sql = "UPDATE {} SET exlist=(%s) WHERE zindex=%s AND timestamp=%s AND id=%s".format( ch.getExceptionsTable(resolution) )
       try:
-        cursor.execute ( sql, (excstr,zidx,annid))
+        cursor.execute ( sql, (excstr, zidx, timestamp, annid))
       except MySQLdb.Error, e:
         if self.txncursor is None:
           cursor.close()

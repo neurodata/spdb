@@ -31,7 +31,7 @@ class TimeCube(Cube):
     self._newcube = False
   
   # @override(Cube)
-  def addData(self, other, index, time):
+  def addData(self, other, time, index):
     """Add data to a larger cube from a smaller cube"""
 
     xoffset = index[0]*other.xdim

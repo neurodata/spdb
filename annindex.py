@@ -36,10 +36,10 @@ class AnnotateIndex:
       self.NPZ = False
    
 
-  def getIndex ( self, ch, entityid, resolution, update=False, timestamp=0 ):
+  def getIndex ( self, ch, entityid, timestamp, resolution, update=False):
     """Retrieve the index for the annotation with id"""  
     
-    idxstr = self.kvio.getIndex(ch, entityid, resolution, update, timestamp)
+    idxstr = self.kvio.getIndex(ch, entityid, timestamp, resolution, update)
     if idxstr:
       if self.NPZ:
         fobj = cStringIO.StringIO ( idxstr )
@@ -50,33 +50,33 @@ class AnnotateIndex:
       return []
        
   
-  def putIndex ( self, ch, entityid, resolution, index, update=False, timestamp=0 ):
+  def putIndex ( self, ch, entityid, timestamp, resolution, index, update=False ):
     """Write the index for the annotation with id"""
 
     if self.NPZ:
       fileobj = cStringIO.StringIO ()
       np.save ( fileobj, index )
-      self.kvio.putIndex(ch, entityid, resolution, fileobj.getvalue(), update, timestamp=timestamp)
+      self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue(), update )
     else:
-      self.kvio.putIndex(ch, entityid, resolution, blosc.pack_array(index), update, timestamp=timestamp)
+      self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(index), update)
 
 
-  def updateIndexDense(self, ch, index, resolution, timestamp=0):
+  def updateIndexDense(self, ch, index, timestamp, resolution ):
     """Updated the database index table with the input index hash table"""
 
     for key, value in index.iteritems():
       cubelist = list(value)
       cubeindex = np.array(cubelist, dtype=np.uint64)
       
-      curindex = self.getIndex(ch, key,resolution,True)
+      curindex = self.getIndex(ch, key, timestamp, resolution, True)
          
       if curindex == []:
-        self.putIndex(ch, key, resolution, cubeindex, False, timestamp=timestamp)
+        self.putIndex(ch, key, timestamp, resolution, cubeindex, False )
             
       else:
         # Update index to the union of the currentIndex and the updated index
         newIndex = np.union1d(curindex, cubeindex)
-        self.putIndex(ch, key, resolution, newIndex, True, timestamp=timestamp)
+        self.putIndex(ch, key, timestamp, resolution, newIndex, True)
 
   
   def deleteIndexResolution ( self, ch, annid, res ):
@@ -94,7 +94,7 @@ class AnnotateIndex:
       self.kvio.deleteIndex(ch,annid,res)
 
 
-  def updateIndex ( self, ch, entityid, index, resolution, timestamp=0 ):
+  def updateIndex ( self, ch, entityid, index, timestamp, resolution ):
     """Updated the database index table with the input index hash table"""
 
     curindex = self.getIndex(ch, entityid, resolution, True)
@@ -104,9 +104,9 @@ class AnnotateIndex:
       if self.NPZ:
         fileobj = cStringIO.StringIO ()
         np.save ( fileobj, index )
-        self.kvio.putIndex(ch, entityid, resolution, fileobj.getvalue(), timestamp=timestamp)
+        self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue())
       else:
-        self.kvio.putIndex(ch, entityid, resolution, blosc.pack_array(index), timestamp=timestamp)
+        self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(index))
 
     else:
         
@@ -117,6 +117,6 @@ class AnnotateIndex:
       if self.NPZ:
         fileobj = cStringIO.StringIO ()
         np.save ( fileobj, newIndex )
-        self.kvio.putIndex(ch, entityid, resolution, fileobj.getvalue(), True, timestamp=timestamp)
+        self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue(), True )
       else:
-        self.kvio.putIndex(ch, entityid, resolution, blosc.pack_array(newIndex), True, timestamp=timestamp)
+        self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(newIndex), True )

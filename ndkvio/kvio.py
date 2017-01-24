@@ -44,12 +44,12 @@ class KVIO(object):
     pass
   
   @abstractmethod
-  def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
+  def getCube(self, ch, zidx, timestamp, resolution, update=False):
     """Retrieve a single cube from the database"""
     return NotImplemented
 
   @abstractmethod
-  def getCubes(self, ch, listofidxs, resolution, neariso=False, timestamp=None):
+  def getCubes(self, ch, listofidxs, timestamp, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     return NotImplemented
   
@@ -59,12 +59,12 @@ class KVIO(object):
     return NotImplemented
  
   @abstractmethod
-  def putCube(self, ch, zidx, resolution, cubestr, update=False, timestamp=None):
+  def putCube(self, ch, zidx, timestamp, resolution, cubestr, update=False):
     """Store a single cube into the database"""
     return NotImplemented
   
   @abstractmethod
-  def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False, timestamp=None):
+  def putCubes(self, ch, listofidxs, timestamp, resolution, listofcubes, update=False):
     """Store multiple cubes into the database"""
     return NotImplemented
   

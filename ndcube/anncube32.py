@@ -32,7 +32,7 @@ class AnnotateCube32(TimeCube):
     self.data = np.zeros ([self.time_range[1]-self.time_range[0]]+self.cubesize, dtype=np.uint32)
 
 
-  def getVoxel ( self, voxel, timestamp=0 ):
+  def getVoxel ( self, timestamp, voxel ):
     """Return the value at the voxel specified as [x,y,z]"""
     return self.data [ timestamp, voxel[2], voxel[1], voxel[0] ]
 
@@ -50,20 +50,20 @@ class AnnotateCube32(TimeCube):
   #
   #  Exceptions are uint8 to keep them small.  Max cube size is 256^3.
   #
-  def annotate ( self, annid, offset, locations, conflictopt, timestamp=0 ):
+  def annotate ( self, annid, timestamp, offset, locations, conflictopt ):
     """Add annotation by a list of locations"""
 
     try:
-      self.data, exceptions = annotate_ctype( self.data[timestamp,:,:,:], annid, offset, np.array(locations, dtype=np.uint32), conflictopt )
+      self.data[timestamp,:,:,:], exceptions = annotate_ctype( self.data[timestamp,:,:,:], annid, offset, np.array(locations, dtype=np.uint32), conflictopt )
       return exceptions
     except IndexError, e:
       raise SpatialDBError ("Voxel list includes out of bounds request.")
 
 
-  def shave ( self, annid, offset, locations, timestamp=0 ):
+  def shave ( self, annid, timestamp, offset, locations ):
     """Remove annotation by a list of locations"""
 
-    self.data , exceptions, zeroed = shave_ctype ( self.data[timestamp,:,:,:], annid, offset, np.array(locations, dtype=np.uint32))
+    self.data[timestamp,:,:,:] , exceptions, zeroed = shave_ctype ( self.data[timestamp,:,:,:], annid, offset, np.array(locations, dtype=np.uint32))
     return exceptions, zeroed
 
 
@@ -117,21 +117,21 @@ class AnnotateCube32(TimeCube):
     return  outimage.resize ( [ydim, int(zdim*scale)] )
 
 
-  def preserve ( self, annodata, tiemstamp=0 ):
+  def preserve ( self, timestamp, annodata, ):
     """Get's a dense voxel region and overwrites all non-zero values"""
     self.data = exceptionDense_ctype ( self.data[timestamp,:,:], annodata )
 
-  def exception ( self, annodata, timestamp=0 ):
+  def exception ( self, timestamp, annodata ):
     """Get's a dense voxel region and overwrites all non-zero values"""
 
     # get all the exceptions not equal and both annotated
-    exdata = ((self.data[timestamp,:,:,:]-annodata)*self.data*annodata!=0) * annodata 
-    self.data = exceptionDense_ctype ( self.data[timestamp,:,:,:], annodata[0,:,:,:] )
+    exdata = ((self.data[timestamp,:,:,:]-annodata)*self.data[timestamp,:,:,:]*annodata!=0) * annodata 
+    self.data[timestamp,:,:,:] = exceptionDense_ctype ( self.data[timestamp,:,:,:], annodata[:,:,:] )
 
     # return the list of exceptions ids and the exceptions
     return exdata
 
-  def shaveDense ( self, annodata, timestamp ):
+  def shaveDense ( self, timestamp, annodata ):
     """Remove the specified voxels from the annotation"""
 
     # get all the exceptions that are equal to the annid in both datasets
@@ -139,7 +139,7 @@ class AnnotateCube32(TimeCube):
 
     # find all shave requests that don't match the dense data
     exdata = (self.data[timestamp,:,:,:] != annodata) * annodata
-    self.data = shaveDense_ctype ( self.data, shavedata )
+    self.data[timestamp,:,:,:] = shaveDense_ctype ( self.data[timestamp,:,:,:], shavedata )
 
     return exdata
 
