@@ -19,20 +19,18 @@ import logging
 logger=logging.getLogger("neurodata")
 
 
-class TimeCube32(TimeCube):
+class TimeCubeI32(TimeCube):
 
   def __init__(self, cube_size=[128,128,16], time_range=[0,1]):
     """Create empty array of cubesize"""
 
     # call the base class constructor
-    super(TimeCube32, self).__init__(cube_size, time_range)
+    super(TimeCubeI32, self).__init__(cube_size, time_range)
     # note that this is self.cubesize (which is transposed) in Cube
     self.data = np.zeros ([self.time_range[1]-self.time_range[0]]+self.cubesize, dtype=np.uint32)
 
   def zeros(self):
     """Create a cube of all zeros"""
-    super(TimeCube32, self).zeros()
-    self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint32)
+    super(TimeCubeI32, self).zeros()
+    self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.int32)
 
-
-  # RBTODO RGB xy/yz/xz slices.

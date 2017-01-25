@@ -73,7 +73,6 @@ class SpatialDB:
     self.kvindex.close()
 
 
-  # RBTODO make this timerange compatibile?
   def getCube(self, ch, timestamp, zidx, resolution, update=False):
     """Load a cube from the database"""
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-#RBTODO make indexing 4-d
+#RBTODO make all get/put Index based on timerange
 
 import numpy as np
 import cStringIO
