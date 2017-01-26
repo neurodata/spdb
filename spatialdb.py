@@ -99,22 +99,22 @@ class SpatialDB:
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
 
-    if listoftimestamps is None:
-      if self.proj.s3backend == S3_TRUE:
-        ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
-        # checking if the index exists inside the database or not
-        if ids_to_fetch:
-          # logger.debug("Cache Miss: {}".format(listofidxs))
-          super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
-          
-          # iterating over super_cuboids
-          for superlistofidxs, superlistofcubes in super_cuboids:
+#    if listoftimestamps is None:
+#      if self.proj.s3backend == S3_TRUE:
+#        ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
+#        # checking if the index exists inside the database or not
+#        if ids_to_fetch:
+#          # logger.debug("Cache Miss: {}".format(listofidxs))
+#          super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
+#          
+#          # iterating over super_cuboids
+#          for superlistofidxs, superlistofcubes in super_cuboids:
             # call putCubes and update index in the table before returning data
-            self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
-            
-      return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
-    else:
-      return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution)
+#            self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
+#            
+#      return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
+#    else:
+    return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution)
 
 
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
@@ -127,7 +127,7 @@ class SpatialDB:
   
   def putCube(self, ch, timestamp, zidx, resolution, cube, update=False):
     """ Store a cube in the annotation database """
-    
+
     # handle the cube format here
     if self.proj.s3backend == S3_TRUE:
       # KLTODO -- broken by tiemstamp changes

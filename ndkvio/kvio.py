@@ -72,9 +72,14 @@ class KVIO(object):
   @staticmethod
   def getIOEngine(db):
     
-    if db.KVENGINE == MYSQL:
+    # KLTODO legacy npz intergace
+    if False and db.KVENGINE == MYSQL:
       from mysqlkvio import MySQLKVIO
       db.NPZ = True
+      return MySQLKVIO(db)
+    elif db.KVENGINE == MYSQL:
+      from mysqlkvio import MySQLKVIO
+      db.NPZ = False
       return MySQLKVIO(db)
     elif db.KVENGINE == CASSANDRA:
       from casskvio import CassandraKVIO

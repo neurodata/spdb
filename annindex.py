@@ -30,7 +30,8 @@ class AnnotateIndex:
     self.proj = proj
     self.kvio = kvio
 
-    if self.proj.kvengine == 'MySQL':
+    # KLTODO legacy inteface
+    if False and self.proj.kvengine == 'MySQL':
       self.NPZ = True
     else: 
       self.NPZ = False

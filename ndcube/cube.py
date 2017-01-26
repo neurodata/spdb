@@ -76,7 +76,7 @@ class Cube(object):
 
   def fromNPZ ( self, compressed_data ):
     """Load the cube from a pickled and zipped blob"""
-    
+
     try:
       self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( compressed_data[:] ) ) )
     except:
@@ -88,6 +88,7 @@ class Cube(object):
 
   def toNPZ ( self ):
     """Pickle and zip the object"""
+
     try:
       # Create the compressed cube
       fileobj = cStringIO.StringIO()
@@ -99,6 +100,7 @@ class Cube(object):
  
   def toBlosc ( self ):
     """Pack the object"""
+
     try:
       # Create the compressed cube
       return blosc.pack_array(self.data) 
@@ -108,10 +110,9 @@ class Cube(object):
   
   def fromBlosc(self, compressed_data):
     """Load the cube from a pickled and zipped blob"""
-    
+
     try:
       self.data = blosc.unpack_array(compressed_data[:])
-      self.zdim, self.ydim, self.xdim = self.data.shape
     except:
       logger.error("Failed to decompress database cube. Data integrity concern.")
       raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")

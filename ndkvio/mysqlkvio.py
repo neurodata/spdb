@@ -279,7 +279,6 @@ class MySQLKVIO(KVIO):
       
 
     except MySQLdb.Error, e:
-      import pdb; pdb.set_trace()
       logger.error("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     
