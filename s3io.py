@@ -35,7 +35,7 @@ class S3IO:
     
     try:
       self.db = db
-      self.client = boto3.client('s3', region_name=region_name, endpoint_url=endpoint_url, aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+      self.client = boto3.client('s3', region_name=region_name, endpoint_url=endpoint_url, aws_access_key_id=ndingest_settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=ndingest_settings.AWS_SECRET_ACCESS_KEY)
       self.project_name = self.db.proj.project_name
     except Exception, e:
       logger.error("Cannot connect to S3 backend")
@@ -49,7 +49,7 @@ class S3IO:
   def generateSuperZindex(self, zidx, resolution):
     """Generate super zindex from a given zindex"""
     
-    [[ximagesz, yimagesz, zimagesz], timerange] = self.db.proj.datasetcfg.dataset_dim(resolution)
+    [ximagesz, yimagesz, zimagesz] = self.db.proj.datasetcfg.dataset_dim(resolution)
     [xcubedim, ycubedim, zcubedim] = cubedim = self.db.proj.datasetcfg.get_cubedim(resolution)
     [xoffset, yoffset, zoffset] = self.db.proj.datasetcfg.get_offset(resolution)
     [xsupercubedim, ysupercubedim, zsupercubedim] = super_cubedim = self.db.proj.datasetcfg.get_supercubedim(resolution)
@@ -110,7 +110,7 @@ class S3IO:
     super_listofidxs = Set([])
     for zidx in listofidxs:
       super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
-   
+    
     for super_zidx in super_listofidxs:
       try:
         super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx)).get('Body').read()
