@@ -321,7 +321,7 @@ class SpatialDB:
     self.kvio.commit()
 
 
-  def annotateDense ( self, ch, timestamp, corner, resolution, annodata, conflictopt ):
+  def annotateDense ( self, ch, timestamp, corner, resolution, annodata, conflictopt='O' ):
     """Process all the annotations in the dense volume"""
 
     index_dict = defaultdict(set)
