@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import MySQLdb
-from kvio import KVIO
+from .kvio import KVIO
 from ndtype import OLDCHANNEL
 from spatialdberror import SpatialDBError
 import logging
@@ -38,7 +38,7 @@ class MySQLKVIO(KVIO):
     try:
       self.conn = MySQLdb.connect (host = self.db.proj.host, user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname)
 
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       self.conn = None
       logger.error("Failed to connect to database: {}, {}".format(self.db.proj.host, self.db.proj.dbname))
       raise SpatialDBError("Failed to connect to database: {}, {}".format(self.db.proj.host, self.db.proj.dbname))
@@ -46,10 +46,6 @@ class MySQLKVIO(KVIO):
     # start with no cursor
     self.txncursor = None
   
-  def __del__(self):
-    """Close the database connection"""
-    self.close()
-
   def close ( self ):
     """Close the connection"""
     if self.conn:
@@ -93,7 +89,7 @@ class MySQLKVIO(KVIO):
     try:
       cursor.execute ( sql, [ch.channel_name] )
       row = cursor.fetchone()
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     finally:
@@ -126,7 +122,7 @@ class MySQLKVIO(KVIO):
     try:
       cursor.execute ( sql )
       row = cursor.fetchone()
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve data cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
 
@@ -178,7 +174,7 @@ class MySQLKVIO(KVIO):
         else:
           return
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
 
@@ -218,7 +214,7 @@ class MySQLKVIO(KVIO):
         else:
           return
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
  
@@ -241,7 +237,7 @@ class MySQLKVIO(KVIO):
 #    try:
 #      cursor.executemany(sql, zip(listofidxs, listofcubes))
 #    
-#    except MySQLdb.Error, e:
+#    except MySQLdb.Error as e:
 #      logger.error("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
 #      raise SpatialDBError("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
 #    
@@ -278,7 +274,7 @@ class MySQLKVIO(KVIO):
         cursor.execute( sql, (cubestr,) )
       
 
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     
@@ -310,11 +306,11 @@ class MySQLKVIO(KVIO):
       cursor.execute ( sql )
       row = cursor.fetchone ()
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Failed to retrieve cube {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Failed to retrieve cube {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     
-    except BaseException, e:
+    except BaseException as e:
       logger.exception("Unknown exception")
       raise SpatialDBError("Unknown exception")
     
@@ -345,11 +341,11 @@ class MySQLKVIO(KVIO):
       try:
          cursor.execute ( sql, (zidx, timestamp, indexstr) )
       
-      except MySQLdb.Error, e:
+      except MySQLdb.Error as e:
          logger.error("Error updating index {}: {}. sql={}".format(e.args[0], e.args[1], sql))
          raise SpatialDBError("Error updating index {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       
-      except BaseException, e:
+      except BaseException as e:
          logger.exception("Unknown error when updating index")
          raise SpatialDBError("Unknown error when updating index")
       
@@ -365,7 +361,7 @@ class MySQLKVIO(KVIO):
       try:
          cursor.execute ( sql, (indexstr,) )
       
-      except MySQLdb.Error, e:
+      except MySQLdb.Error as e:
          logger.error("Error updating exceptions {}: {}. sql={}".format(e.args[0], e.args[1], sql))
          raise SpatialDBError("Error updating exceptions {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       
@@ -397,7 +393,7 @@ class MySQLKVIO(KVIO):
     try:
        cursor.execute(sql)
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
        logger.error("Error deleting the index {}: {}. sql={}".format(e.args[0], e.args[1], sql))
        raise SpatialDBError("Error deleting the index {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     
@@ -430,7 +426,7 @@ class MySQLKVIO(KVIO):
       cursor.execute(sql)
       row = cursor.fetchone()
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Error reading exceptions {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Error reading exceptions {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     
@@ -459,7 +455,7 @@ class MySQLKVIO(KVIO):
     try:
       cursor.execute ( sql )
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       if self.txncursor is None:
         cursor.close()
       logger.error("Error deleting exceptions {}: {}. sql={}".format(e.args[0], e.args[1], sql))
@@ -488,7 +484,7 @@ class MySQLKVIO(KVIO):
       sql = "INSERT INTO {} (zindex, timestamp, id, exlist) VALUES (%s, %s, %s, %s)".format( ch.getExceptionsTable(resolution) )
       try:
         cursor.execute ( sql, (zidx, timestamp, annid, excstr))
-      except MySQLdb.Error, e:
+      except MySQLdb.Error as e:
         if self.txncursor is None:
           cursor.close()
         raise
@@ -501,7 +497,7 @@ class MySQLKVIO(KVIO):
       sql = "UPDATE {} SET exlist=(%s) WHERE zindex=%s AND timestamp=%s AND id=%s".format( ch.getExceptionsTable(resolution) )
       try:
         cursor.execute ( sql, (excstr, zidx, timestamp, annid))
-      except MySQLdb.Error, e:
+      except MySQLdb.Error as e:
         if self.txncursor is None:
           cursor.close()
         raise

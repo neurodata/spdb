@@ -14,7 +14,7 @@
 
 import time
 from toolz import interleave
-from kvindex import KVIndex
+from .kvindex import KVIndex
 from redispool import RedisPool
 import redis
 from django.conf import settings
@@ -65,7 +65,7 @@ class RedisKVIndex(KVIndex):
       self.client.zunionstore(index_store_temp, {index_store_temp : 1, index_store : 0}, 'MIN')
       ids_to_fetch = self.client.zrevrangebyscore(index_store_temp, '+inf', 1)
       self.client.delete(index_store_temp)
-    except Exception, e:
+    except Exception as e:
       logger.error("Error retrieving cube indexes into the database. {}".format(e))
       raise SpatialDBError("Error retrieving cube indexes into the database. {}".format(e))
     
@@ -84,6 +84,6 @@ class RedisKVIndex(KVIndex):
         cachedtime_list = [time.time()]*len(listofidxs)
         index_list = list(interleave([cachedtime_list, self.getIndexList(ch, resolution, listofidxs)]))
         self.client.zadd(self.getIndexStore(), *index_list)
-    except Exception, e:
+    except Exception as e:
       logger.error("Error inserting cube indexes into the database. {}".format(e))
       raise SpatialDBError("Error inserting cube indexes into the database. {}".format(e))

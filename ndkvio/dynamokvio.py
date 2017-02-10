@@ -57,7 +57,7 @@ class DynamoKVIO:
         }
       )
 
-    except Exception, e:
+    except Exception as e:
       return None
 
     #response now contains a JSON item 
@@ -87,7 +87,7 @@ class DynamoKVIO:
 #        for row in rows:
 #          yield (row.zidx, row.cuboid.decode('hex'))
 #
-#      except Exception, e:
+#      except Exception as e:
 #        raise
 #
   def putCube ( self, ch, zidx, resolution, cubestr, update=False, timestamp=None ):
@@ -105,7 +105,7 @@ class DynamoKVIO:
           'cuboid': cubestr.encode('hex'),
         }
       )
-    except Exception, e:
+    except Exception as e:
       raise
   
 
@@ -117,7 +117,7 @@ class DynamoKVIO:
     try:
       response = dtbl.get_item ( Key = { 'resolution': resolution, 'zidx': zidx } ) 	
       item = response['cuboids']
-    except Exception, e:
+    except Exception as e:
       raise
 
     return item
@@ -129,7 +129,7 @@ class DynamoKVIO:
 
     try:
       response = dtbl.put_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'cuboids': indexstr } ) 	
-    except Exception, e:
+    except Exception as e:
       raise
     
 
@@ -140,7 +140,7 @@ class DynamoKVIO:
 
     try:
       response = dtbl.delete_item ( Key = { 'resolution': resolution, 'zidx': zidx } ) 	
-    except Exception, e:
+    except Exception as e:
       raise
 
 
@@ -152,7 +152,7 @@ class DynamoKVIO:
     try:
       response = dtbl.get_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'annid': annid } ) 	
       item = response['exceptions']
-    except Exception, e:
+    except Exception as e:
       raise
 
     return item.decode('hex')
@@ -165,7 +165,7 @@ class DynamoKVIO:
 
     try:
       response = dtbl.put_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'annid': annid, 'exceptions': excstr.encode('hex') } ) 	
-    except Exception, e:
+    except Exception as e:
       raise
   
 
@@ -176,5 +176,5 @@ class DynamoKVIO:
 
     try:
       response = dtbl.delete_item ( Key = { 'resolution': resolution, 'zidx': zidx, 'annid': annid } )
-    except Exception, e:
+    except Exception as e:
       raise

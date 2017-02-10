@@ -15,7 +15,7 @@
 import numpy as np
 from PIL import Image
 
-from timecube import TimeCube
+from .timecube import TimeCube
 
 import logging
 logger=logging.getLogger("neurodata")

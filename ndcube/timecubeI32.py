@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numpy as np
-from timecube import TimeCube
+from .timecube import TimeCube
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")

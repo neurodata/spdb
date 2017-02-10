@@ -14,7 +14,7 @@
 
 import numpy as np
 import zlib
-import cStringIO
+from io import BytesIO
 import blosc
 from abc import abstractmethod
 from ndlib.ndctypelib import  overwriteDense_ctype
@@ -78,7 +78,7 @@ class Cube(object):
     """Load the cube from a pickled and zipped blob"""
 
     try:
-      self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( compressed_data[:] ) ) )
+      self.data = np.load ( BytesIO ( zlib.decompress ( compressed_data[:] ) ) )
     except:
       logger.error("Failed to decompress database cube. Data integrity concern.")
       raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")
@@ -91,7 +91,7 @@ class Cube(object):
 
     try:
       # Create the compressed cube
-      fileobj = cStringIO.StringIO()
+      fileobj = BytesIO()
       np.save (fileobj, self.data)
       return  zlib.compress (fileobj.getvalue())
     except:
@@ -157,29 +157,29 @@ class Cube(object):
   def CubeFactory(cubedim, channel_type, datatype, timerange=[0,1]):
     
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
-      from anncube32 import AnnotateCube32
+      from spdb.ndcube.anncube32 import AnnotateCube32
       return AnnotateCube32(cubedim)
     elif channel_type in TIMESERIES_CHANNELS:
       if datatype in DTYPE_uint8:
-        from timecube8 import TimeCube8
+        from spdb.ndcube.timecube8 import TimeCube8
         return TimeCube8(cubedim, timerange)
       elif datatype in DTYPE_uint16:
-        from timecube16 import TimeCube16 
+        from spdb.ndcube.timecube16 import TimeCube16 
         return TimeCube16(cubedim, timerange)
       elif datatype in DTYPE_uint32:
-        from timecube32 import TimeCube32 
+        from spdb.ndcube.timecube32 import TimeCube32 
         return TimeCube32(cubedim, timerange)
       elif datatype in DTYPE_int8:
-        from timecubeI8 import TimeCubeI8
+        from spdb.ndcube.timecubeI8 import TimeCubeI8
         return TimeCubeI8(cubedim, timerange)
       elif datatype in DTYPE_int16:
-        from timecubeI16 import TimeCubeI16 
+        from spdb.ndcube.timecubeI16 import TimeCubeI16 
         return TimeCubeI16(cubedim, timerange)
       elif datatype in DTYPE_int32:
-        from timecubeI32 import TimeCubeI32 
+        from spdb.ndcube.timecubeI32 import TimeCubeI32 
         return TimeCubeI32(cubedim, timerange)
       elif datatype in DTYPE_float32:
-        from timecubefloat32 import TimeCubeFloat32
+        from spdb.ndcube.timecubefloat32 import TimeCubeFloat32
         return TimeCubeFloat32(cubedim, timerange)
     else:
       logger.error("Could not find a cube type for this channel.  Bad channel type?")

@@ -14,7 +14,7 @@
 
 import numpy as np
 from PIL import Image
-from timecube import TimeCube
+from .timecube import TimeCube
 
 
 class TimeCube8(TimeCube):

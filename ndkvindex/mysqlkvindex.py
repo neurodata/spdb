@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from sets import Set
 import MySQLdb
-from kvindex import KVIndex
+from .kvindex import KVIndex
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -31,7 +30,7 @@ class MySQLKVIndex(KVIndex):
     try:
       self.conn = MySQLdb.connect (host = self.db.proj.getDBHost(), user = self.db.proj.getDBUser(), passwd = self.db.proj.getDBPasswd(), db = self.db.proj.getDBName())
 
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       self.conn = None
       logger.error("Failed to connect to database: {}, {}".format(self.db.proj.getDBHost(), self.db.proj.getDBName()))
       raise SpatialDBError("Failed to connect to database: {}, {}".format(self.db.proj.getDBHost(), self.db.proj.getDBName()))
@@ -71,12 +70,12 @@ class MySQLKVIndex(KVIndex):
       rc = cursor.execute(sql, listofidxs)
       ids_existing = cursor.fetchall()
       if ids_existing:
-        ids_to_fetch = Set(listofidxs).difference( Set(i[0] for i in ids_existing))
+        ids_to_fetch = set(listofidxs).difference( set(i[0] for i in ids_existing))
         return list(ids_to_fetch)
       else:
         return listofidxs
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Error selecting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Error selecting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     
@@ -98,7 +97,7 @@ class MySQLKVIndex(KVIndex):
     try:
       cursor.executemany(sql, listofidxs)
     
-    except MySQLdb.Error, e:
+    except MySQLdb.Error as e:
       logger.error("Error inserting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Error inserting zindex: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
     

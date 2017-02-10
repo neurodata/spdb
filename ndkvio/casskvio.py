@@ -62,7 +62,7 @@ class CassandraKVIO:
         return row[0].cuboid.decode('hex')
       else:
         return None
-    except Exception, e:
+    except Exception as e:
       logger.error("Error retrieving cube from the database")
       raise SpatialDBError("Error retrieving cube from the database")
 
@@ -88,7 +88,7 @@ class CassandraKVIO:
         for row in rows:
           yield (row.zidx, row.cuboid.decode('hex'))
 
-      except Exception, e:
+      except Exception as e:
         logger.error("Error retrieving cubes from the database")
         raise SpatialDBError("Error retrieving cubes from the database")
 
@@ -98,7 +98,7 @@ class CassandraKVIO:
     try:
       cql = "INSERT INTO {} ( resolution, zidx, cuboid ) VALUES ( {}, %s, %s )".format(ch.getTable(resolution), resolution)
       self.session.execute ( cql, (zidx, cubestr.encode('hex')))
-    except Exception, e:
+    except Exception as e:
       logger.error("Error inserting cube into the database")
       raise SpatialDBError("Error inserting cube into the database")
 
@@ -109,7 +109,7 @@ class CassandraKVIO:
     try:
       cql = "INSERT INTO {} ( resolution, zidx, cuboid ) VALUES ( {}, %s, %s )".format(ch.getTable(resolution), resolution)
       self.session.execute ( cql, (zidx, cubestr.encode('hex')))
-    except Exception, e:
+    except Exception as e:
       logger.error("Error inserting cubes into the database")
       raise SpatialDBError("Error inserting cubes into the database")
 
@@ -144,7 +144,7 @@ class CassandraKVIO:
     # try:
       # cql = "SELECT exceptions FROM exceptions WHERE resolution = %s AND zidx = %s and annoid=%s"
       # row = self.session.execute ( cql, (resolution, zidx, annid ))
-    # except Exception, e:
+    # except Exception as e:
       # raise
 
     # if row:

@@ -22,14 +22,6 @@ class KVIO(object):
   def __init__ ( self, db ):
     """Constructor for the class"""
     self.db = db
-  
-  def __del__(self, db):
-    """Destructor for the class"""
-    self.close()
-
-  def close ( self ):
-    """Close the connection"""
-    pass
 
   def startTxn ( self ):
     """Start a transaction. Ensure database is in multi-statement mode."""
@@ -74,23 +66,23 @@ class KVIO(object):
     
     # KLTODO legacy npz intergace
     if False and db.KVENGINE == MYSQL:
-      from mysqlkvio import MySQLKVIO
+      from .mysqlkvio import MySQLKVIO
       db.NPZ = True
       return MySQLKVIO(db)
     elif db.KVENGINE == MYSQL:
-      from mysqlkvio import MySQLKVIO
+      from .mysqlkvio import MySQLKVIO
       db.NPZ = False
       return MySQLKVIO(db)
     elif db.KVENGINE == CASSANDRA:
-      from casskvio import CassandraKVIO
+      from .casskvio import CassandraKVIO
       db.NPZ = False
       return CassandraKVIO(db)
     elif db.KVENGINE == RIAK:
-      from riakkvio import RiakKVIO
+      from .riakkvio import RiakKVIO
       db.NPZ = False
       return RiakKVIO(db)
     elif db.KVENGINE == REDIS:
-      from rediskvio import RedisKVIO
+      from .rediskvio import RedisKVIO
       db.NPZ = False
       return RedisKVIO(db)
     else:

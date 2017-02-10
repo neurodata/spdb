@@ -54,7 +54,7 @@ class RiakKVIO:
       # riak returns an object with None in the data fields if its not there
       robj = self.bucket.get( "cuboid:{}:{}".format(resolution,zidx) )
       return robj.encoded_data 
-    except Exception, e:
+    except Exception as e:
       raise
 
 
@@ -68,7 +68,7 @@ class RiakKVIO:
       for r in robjs:
         yield re.match( "cuboid:[\d+]:(.*)", r.key).group(1), r.encoded_data
 
-    except Exception, e:
+    except Exception as e:
       raise
 
   def putCube ( self, zidx, resolution, cubestr, udpate ):
@@ -77,7 +77,7 @@ class RiakKVIO:
     try:
       robj = self.bucket.new( key="cuboid:{}:{}".format(resolution,zidx), encoded_data=cubestr )
       robj.store()
-    except Exception, e:
+    except Exception as e:
       raise
 
 
@@ -87,7 +87,7 @@ class RiakKVIO:
     try:
       robj = self.bucket.get( "idx:{}:{}".format(resolution,annid) )
       return robj.encoded_data 
-    except Exception, e:
+    except Exception as e:
       raise
 
 
@@ -97,7 +97,7 @@ class RiakKVIO:
     try:
       robj = self.bucket.new( key="idx:{}:{}".format(resolution,annid), encoded_data=indexstr )
       robj.store()
-    except Exception, e:
+    except Exception as e:
       raise
     
 
@@ -106,7 +106,7 @@ class RiakKVIO:
 
     try:
       self.bucket.delete( "idx:{}:{}".format(resolution,annid) )
-    except Exception, e:
+    except Exception as e:
       raise
 
 
@@ -116,7 +116,7 @@ class RiakKVIO:
     try:
       robj = self.bucket.get( "excs:{}:{}:{}".format(resolution,zidx,annid) )
       return robj.encoded_data
-    except Exception, e:
+    except Exception as e:
       raise
 
 
@@ -126,7 +126,7 @@ class RiakKVIO:
     try:
       robj = self.bucket.new( key="excs:{}:{}:{}".format(resolution,zidx,annid), encoded_data=excstr )
       robj.store()
-    except Exception, e:
+    except Exception as e:
       raise
 
 
@@ -135,6 +135,6 @@ class RiakKVIO:
 
     try:
       self.bucket.delete( "excs:{}:{}:{}".format(resolution,zidx,annid) )
-    except Exception, e:
+    except Exception as e:
       raise
 

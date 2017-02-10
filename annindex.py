@@ -16,7 +16,7 @@
 #RBTODO make all get/put Index based on timerange
 
 import numpy as np
-import cStringIO
+from io import BytesIO
 import blosc
 import logging
 logger=logging.getLogger("neurodata")
@@ -43,7 +43,7 @@ class AnnotateIndex:
     idxstr = self.kvio.getIndex(ch, entityid, timestamp, resolution, update)
     if idxstr:
       if self.NPZ:
-        fobj = cStringIO.StringIO ( idxstr )
+        fobj = BytesIO( idxstr )
         return np.load ( fobj )
       else:
         return blosc.unpack_array(idxstr)
@@ -55,7 +55,7 @@ class AnnotateIndex:
     """Write the index for the annotation with id"""
 
     if self.NPZ:
-      fileobj = cStringIO.StringIO ()
+      fileobj = BytesIO()
       np.save ( fileobj, index )
       self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue(), update )
     else:
@@ -65,7 +65,7 @@ class AnnotateIndex:
   def updateIndexDense(self, ch, index, timestamp, resolution ):
     """Updated the database index table with the input index hash table"""
 
-    for key, value in index.iteritems():
+    for key, value in index.items():
       cubelist = list(value)
       cubeindex = np.array(cubelist, dtype=np.uint64)
       
@@ -103,7 +103,7 @@ class AnnotateIndex:
     if curindex == []:
         
       if self.NPZ:
-        fileobj = cStringIO.StringIO ()
+        fileobj = BytesIO()
         np.save ( fileobj, index )
         self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue())
       else:
@@ -116,7 +116,7 @@ class AnnotateIndex:
 
       # Update the index in the database
       if self.NPZ:
-        fileobj = cStringIO.StringIO ()
+        fileobj = BytesIO()
         np.save ( fileobj, newIndex )
         self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue(), True )
       else:

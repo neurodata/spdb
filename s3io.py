@@ -16,8 +16,7 @@ import boto3
 import botocore
 import blosc
 import hashlib
-from sets import Set
-from operator import add, sub, mul, div, mod
+from operator import add, sub, mul, floordiv, mod
 from django.conf import settings
 from ndlib.ndctypelib import XYZMorton, MortonXYZ
 from ndlib.s3util import generateS3BucketName, generateS3Key
@@ -37,7 +36,7 @@ class S3IO:
       self.db = db
       self.client = boto3.client('s3', region_name=region_name, endpoint_url=endpoint_url, aws_access_key_id=settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
       self.project_name = self.db.proj.project_name
-    except Exception, e:
+    except Exception as e:
       logger.error("Cannot connect to S3 backend")
       raise SpatialDBError("Cannot connect to S3 backend")
   
@@ -57,7 +56,7 @@ class S3IO:
     # super_cubedim = map(mul, cubedim, SUPERCUBESIZE)
     [x, y, z] = MortonXYZ(zidx)
     corner = map(mul, MortonXYZ(zidx), cubedim)
-    [x,y,z] = map(div, corner, super_cubedim)
+    [x,y,z] = map(floordiv, corner, super_cubedim)
     return XYZMorton([x,y,z])
 
   def breakCubes(self, super_zidx, resolution, super_cube):
@@ -107,7 +106,7 @@ class S3IO:
     """Retrieve multiple cubes from the database"""
     
     # KL TODO replace this by ndingest cuboidbucket
-    super_listofidxs = Set([])
+    super_listofidxs = set([])
     for zidx in listofidxs:
       super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
    
@@ -129,7 +128,7 @@ class S3IO:
     """Retrieve multiple cubes from the database"""
     
     # KL TODO Test this function
-    super_listofidxs = Set([])
+    super_listofidxs = set([])
     for zidx in listofidxs:
       super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
     

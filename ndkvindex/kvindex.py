@@ -23,17 +23,11 @@ class KVIndex(object):
     """Constructor for the class"""
     self.db = db
   
+  @abstractmethod
+  def close(self):
+    """Close the database connection"""
+    return NotImplemented
 
-  def __del__ (self, db):
-    """Desctructor for the class"""
-    self.close()
-
-
-  def close ( self ):
-    """Close the connection"""
-    pass
-
-    
   @abstractmethod
   def getCubeIndex(self, ch, resolution, listofidxs, listoftimestamps=None):
     """Fetch the index list of inserted cubes"""
@@ -56,13 +50,5 @@ class KVIndex(object):
   @staticmethod
   def getIndexEngine(db):
     
-    from rediskvindex import RedisKVIndex
+    from .rediskvindex import RedisKVIndex
     return RedisKVIndex(db)
-    # if db.KVENGINE == MYSQL:
-      # from mysqlkvindex import MySQLKVIndex
-      # return MySQLKVIO(db)
-    # elif db.KVENGINE == REDIS:
-      # from redismyqlindex import RedisKVIndex
-      # return RedisKVIO(db)
-    # else:
-      # return KVIO(db)

@@ -14,15 +14,13 @@
 
 import redis
 from django.conf import settings
-from singletontype import SingletonType
-from spatialdberror import SpatialDBError
+from spdb.singletontype import SingletonType
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
 
 
-class RedisPool(object):
-  __metaclass__ = SingletonType 
-
+class RedisPool(object, metaclass=SingletonType):
   blocking_pool = redis.BlockingConnectionPool(host=settings.REDIS_INDEX_HOST,
                                                port=settings.REDIS_INDEX_PORT,
                                                db=settings.REDIS_INDEX_DB,

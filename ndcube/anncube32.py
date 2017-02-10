@@ -14,7 +14,7 @@
 
 from PIL import Image
 from ndctypelib import *
-from timecube import TimeCube
+from .timecube import TimeCube
 from spatialdberror import SpatialDBError 
 import logging
 logger=logging.getLogger("neurodata")
@@ -56,7 +56,7 @@ class AnnotateCube32(TimeCube):
     try:
       self.data[timestamp,:,:,:], exceptions = annotate_ctype( self.data[timestamp,:,:,:], annid, offset, np.array(locations, dtype=np.uint32), conflictopt )
       return exceptions
-    except IndexError, e:
+    except IndexError as e:
       raise SpatialDBError ("Voxel list includes out of bounds request.")
 
 
@@ -157,6 +157,6 @@ class AnnotateCube32(TimeCube):
     """ Cube data zoomed out """
     assert 0 # timestamp TODO
 
-    newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]/(2**factor), self.data.shape[2]/(2**factor)], dtype=np.uint32) 
+    newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]//(2**factor), self.data.shape[2]//(2**factor)], dtype=np.uint32) 
     zoomOutData_ctype ( self.data, newdata, int(factor) )
     self.data = newdata

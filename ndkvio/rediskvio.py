@@ -15,7 +15,7 @@
 import types
 import redis
 from redispool import RedisPool
-from kvio import KVIO
+from .kvio import KVIO
 from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -56,7 +56,7 @@ class RedisKVIO(KVIO):
     
     try:
       rows = self.client.mget( self.generateKeys(ch, resolution, [zidx], timestamp) )  
-    except Exception, e:
+    except Exception as e:
       logger.error("Error retrieving cubes into the database. {}".format(e))
       raise SpatialDBError("Error retrieving cubes into the database. {}".format(e))
     
@@ -70,7 +70,7 @@ class RedisKVIO(KVIO):
     
     try:
       rows = self.client.mget( self.generateKeys(ch, resolution, listofidxs, timestamp) )
-    except Exception, e:
+    except Exception as e:
       logger.error("Error retrieving cubes into the database. {}".format(e))
       raise SpatialDBError("Error retrieving cubes into the database. {}".format(e))
     
@@ -83,7 +83,7 @@ class RedisKVIO(KVIO):
     
     try:
       rows = self.client.mget( self.generateKeys(ch, resolution, [idx], listoftimestamps) )
-    except Exception, e:
+    except Exception as e:
       logger.error("Error inserting cubes into the database. {}".format(e))
       raise SpatialDBError("Error inserting cubes into the database. {}".format(e))
     
@@ -99,7 +99,7 @@ class RedisKVIO(KVIO):
     
     try:
       self.client.mset( dict(zip(key_list, [cubestr])) )
-    except Exception, e:
+    except Exception as e:
       logger.error("Error inserting cube into the database. {}".format(e))
       raise SpatialDBError("Error inserting cube into the database. {}".format(e))
 
@@ -111,6 +111,6 @@ class RedisKVIO(KVIO):
     
     try:
       self.client.mset( dict(zip(key_list, listofcubes)) )
-    except Exception, e:
+    except Exception as e:
       logger.error("Error inserting cubes into the database. {}".format(e))
       raise SpatialDBError("Error inserting cubes into the database. {}".format(e))

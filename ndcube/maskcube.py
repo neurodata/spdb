@@ -14,7 +14,7 @@
 
 import numpy as np
 from PIL import Image
-from cube import Cube
+from .cube import Cube
 
 """
 .. module:: maskcube

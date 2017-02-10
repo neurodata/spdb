@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numpy as np
-from cube import Cube
+from .cube import Cube
 from ndlib.ndctypelib import  overwriteDense_ctype
 
 import logging
