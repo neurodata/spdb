@@ -1145,6 +1145,8 @@ class SpatialDB:
               # update in the database
               self.putCube(ch, timestamp, zidx, resolution, cube)
 
+      self.kvio.commit()
+
     except:
       self.kvio.rollback()
       raise
