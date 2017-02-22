@@ -40,7 +40,11 @@ class TimeCubeFloat32(TimeCube):
 
   def xyImage(self):
     """Create xy slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
 
     # translate the 0-1 map down to to 256 value
     imgdata = np.uint8(self.data*256)
@@ -53,7 +57,11 @@ class TimeCubeFloat32(TimeCube):
 
   def xzImage(self, zscale):
     """Create xz slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
 
     # translate the 0-1 map down to to 256 value
     imgdata = np.uint8(self.data*256)
@@ -66,7 +74,11 @@ class TimeCubeFloat32(TimeCube):
 
   def yzImage(self, zscale):
     """Create yz slice"""
-    zdim,ydim,xdim = self.data.shape[1:]
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
 
     # translate the 0-1 map down to to 256 value
     imgdata = np.uint8(self.data*256)

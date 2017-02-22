@@ -685,7 +685,8 @@ class SpatialDB:
     #xyzcube = [ voxel[0]//xcubedim, voxel[1]//ycubedim, voxel[2]//zcubedim ]
     #xyzoffset =[ voxel[0]%xcubedim, voxel[1]%ycubedim, voxel[2]%zcubedim ]
     key = XYZMorton ( xyzcube )
-
+    
+    # RB FIX This needs a timestamp argument
     cube = self.getCube(ch, timestamp, key, resolution)
 
     if cube is None:
