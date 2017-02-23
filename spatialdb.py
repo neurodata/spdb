@@ -689,7 +689,7 @@ class SpatialDB:
     return cube
 
 
-  def getVoxel(self, ch, resolution, voxel):
+  def getVoxel(self, ch, timestamp, resolution, voxel):
     """Return the identifier at a voxel"""
     
     # check propagate status, if not propagated then change voxel co-ordinates accordinig to base resolution
@@ -722,7 +722,7 @@ class SpatialDB:
     if cube is None:
       return 0
     else:
-      return cube.getVoxel(xyzoffset)
+      return cube.getVoxel(timestamp, xyzoffset)
 
 
   def applyCubeExceptions(self, ch, annoids, timestamp, resolution, idx, cube ):
