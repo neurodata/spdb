@@ -14,6 +14,7 @@
 
 import types
 import redis
+import itertools
 from redispool import RedisPool
 from kvio import KVIO
 from spatialdberror import SpatialDBError
@@ -34,28 +35,35 @@ class RedisKVIO(KVIO):
       logger.error("Could not connect to Redis server. {}".format(e))
       raise SpatialDBError("Could not connect to Redis server. {}".format(e))
    
-  def generateKeys(self, ch, resolution, zidx_list, timestamp):
+  def generateKeys(self, ch, timestamp_list, zidx_list, resolution, neariso=False):
     """Generate a key for Redis"""
     
     key_list = []
-    if isinstance(timestamp, types.ListType):
-      for tvalue in timestamp:
-        key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, tvalue, zidx_list[0]) )
-    else:
+    for timestamp in timestamp_list:
       for zidx in zidx_list:
-        if timestamp == None:
-          key_list.append( '{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx) )
+        if neariso:
+          key_list.append( '{}&{}&{}&{}&{}&neariso'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx, timestamp) )
         else:
-          key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, timestamp, zidx) )
+          key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx, timestamp) )
+    
+    # if isinstance(timestamp, types.ListType):
+      # for tvalue in timestamp:
+        # key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, tvalue, zidx_list[0]) )
+    # else:
+      # for zidx in zidx_list:
+        # if timestamp == None:
+          # key_list.append( '{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx) )
+        # else:
+          # key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, timestamp, zidx) )
 
     return key_list
 
 
-  def getCube(self, ch, zidx, resolution, update=False, timestamp=None):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
     """Retrieve a single cube from the database"""
     
     try:
-      rows = self.client.mget( self.generateKeys(ch, resolution, [zidx], timestamp) )  
+      rows = self.client.mget( self.generateKeys(ch, [timestamp], [zidx], resolution, neariso) )  
     except Exception, e:
       logger.error("Error retrieving cubes into the database. {}".format(e))
       raise SpatialDBError("Error retrieving cubes into the database. {}".format(e))
@@ -65,37 +73,41 @@ class RedisKVIO(KVIO):
     else:
       return None
 
-  def getCubes(self, ch, listofidxs, resolution, neariso=False, timestamp=None):
+  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     
     try:
-      rows = self.client.mget( self.generateKeys(ch, resolution, listofidxs, timestamp) )
+      rows = self.client.mget( self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso) )
     except Exception, e:
       logger.error("Error retrieving cubes into the database. {}".format(e))
       raise SpatialDBError("Error retrieving cubes into the database. {}".format(e))
     
-    for idx, row in zip(listofidxs, rows):
-      yield ( idx, row )
+    for (timestamp, zidx), row in zip(itertools.product(listoftimestamps, listofidxs), rows):
+      yield(zidx, timestamp, row)
+
+    # for idx in listofidxs:
+      # for zidx, timestamp, row in zip([idx]*len(listoftimestamps), listoftimestamps, rows):
+        # yield ( zidx, timestamp, row )
 
 
-  def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
-    """Retrieve multiple cubes from the database"""
+  # def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
+    # """Retrieve multiple cubes from the database"""
     
-    try:
-      rows = self.client.mget( self.generateKeys(ch, resolution, [idx], listoftimestamps) )
-    except Exception, e:
-      logger.error("Error inserting cubes into the database. {}".format(e))
-      raise SpatialDBError("Error inserting cubes into the database. {}".format(e))
+    # try:
+      # rows = self.client.mget( self.generateKeys(ch, resolution, [idx], listoftimestamps) )
+    # except Exception, e:
+      # logger.error("Error inserting cubes into the database. {}".format(e))
+      # raise SpatialDBError("Error inserting cubes into the database. {}".format(e))
     
-    for idx, timestamp, row in zip([idx]*len(listoftimestamps), listoftimestamps, rows):
-      yield ( idx, timestamp, row )
+    # for idx, timestamp, row in zip([idx]*len(listoftimestamps), listoftimestamps, rows):
+      # yield ( idx, timestamp, row )
 
 
-  def putCube(self, ch, zidx, resolution, cubestr, update=False, timestamp=None):
+  def putCube(self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False):
     """Store a single cube into the database"""
     
     # generating the key
-    key_list = self.generateKeys(ch, resolution, [zidx], timestamp=timestamp)
+    key_list = self.generateKeys(ch, [timestamp], [zidx], resolution, neariso=False)
     
     try:
       self.client.mset( dict(zip(key_list, [cubestr])) )
@@ -103,11 +115,11 @@ class RedisKVIO(KVIO):
       logger.error("Error inserting cube into the database. {}".format(e))
       raise SpatialDBError("Error inserting cube into the database. {}".format(e))
 
-  def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False, timestamp=None):
+  def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Store multiple cubes into the database"""
     
     # generating the list of keys
-    key_list = self.generateKeys(ch, resolution, listofidxs, timestamp=timestamp)
+    key_list = self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso)
     
     try:
       self.client.mset( dict(zip(key_list, listofcubes)) )
