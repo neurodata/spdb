@@ -1139,6 +1139,7 @@ class SpatialDB:
 
               cube = self.getCube(ch, timestamp, zidx, resolution, update=True)
 
+              # KLTODO in test_probability.py overwrite does not work for float32.
               # overwrite the cube -- one timestamp in cube so write to time 0
               cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
 
