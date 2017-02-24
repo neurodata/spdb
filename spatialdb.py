@@ -702,7 +702,7 @@ class SpatialDB:
     return cube
 
 
-  def getVoxel(self, ch, resolution, voxel):
+  def getVoxel(self, ch, timestamp, resolution, voxel):
     """Return the identifier at a voxel"""
     
     # check propagate status, if not propagated then change voxel co-ordinates accordinig to base resolution
@@ -736,7 +736,7 @@ class SpatialDB:
     if cube is None:
       return 0
     else:
-      return cube.getVoxel(xyzoffset)
+      return cube.getVoxel(timestamp, xyzoffset)
 
 
   def applyCubeExceptions(self, ch, annoids, timestamp, resolution, idx, cube ):
@@ -1153,6 +1153,7 @@ class SpatialDB:
 
               cube = self.getCube(ch, timestamp, zidx, resolution, update=True)
 
+              # KLTODO in test_probability.py overwrite does not work for float32.
               # overwrite the cube -- one timestamp in cube so write to time 0
               cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
 
