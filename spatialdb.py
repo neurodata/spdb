@@ -102,14 +102,15 @@ class SpatialDB:
 
     if self.proj.s3backend == S3_TRUE:
       ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso)
-     if ids_to_fetch:
-       # logger.debug("Cache Miss: {}".format(listofidxs))
-       super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution, neariso)
-       # iterating over super_cuboids
-       for superlistofidxs, superlistofcubes in super_cuboids:
-         # call putCubes and update index in the table before returning data
-         self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
+      if ids_to_fetch:
+        # logger.debug("Cache Miss: {}".format(listofidxs))
+        super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution, neariso)
+        # iterating over super_cuboids
+        for superlistofidxs, superlistofcubes in super_cuboids:
+          # call putCubes and update index in the table before returning data
+          self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
 
+    return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso)
    # if listoftimestamps is None:
      # if self.proj.s3backend == S3_TRUE:
        # ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
@@ -125,7 +126,6 @@ class SpatialDB:
            
      # return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
    # else:
-    return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso)
 
 
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
@@ -535,7 +535,7 @@ class SpatialDB:
     return effcorner, effdim 
 
 
-  def cutout(self, ch, corner, dim, resolution, timerange=None, zscaling=None, annoids=None, neariso=False):
+  def cutout(self, ch, corner, dim, resolution, timerange=[0,1], zscaling=None, annoids=None, neariso=False):
     """Extract a cube of arbitrary size. Need not be aligned."""
 
     [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution) 
@@ -564,11 +564,11 @@ class SpatialDB:
     ynumcubes = (effcorner[1]+effdim[1]+ycubedim-1)/ycubedim - ystart
     xnumcubes = (effcorner[0]+effdim[0]+xcubedim-1)/xcubedim - xstart
   
-    # use the requested resolution
-    if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-      dbname = ch.getNearIsoTable(resolution)
-    else:
-      dbname = ch.getTable(effresolution)
+    # # use the requested resolution
+    # if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
+      # dbname = ch.getNearIsoTable(resolution)
+    # else:
+      # dbname = ch.getTable(effresolution)
 
     incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange )
     outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, timerange=timerange)
@@ -583,6 +583,7 @@ class SpatialDB:
 
     # sort the indexes in morton order
     listofidxs.sort()
+    listoftimestamps = range(timerange[0], timerange[1])
     
     # xyz offset stored for later use
     lowxyz = MortonXYZ ( listofidxs[0] )
@@ -591,72 +592,32 @@ class SpatialDB:
 
     try:
 
-      # checking for timeseries data and doing an optimized cutout here in timeseries column
-      if True: #ch.channel_type in TIMESERIES_CHANNELS:
-
-        if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-          cuboids = self.getCubes(ch, listofidxs, effresolution, True)
-        else:
-          cuboids = self.getCubes(ch, listofidxs, effresolution)
-        
-        # cuboids = self.getCubes(ch, range(timerange[0], timerange[1]), listofidxs, resolution, neariso)
-        for idx in listofidxs:
-          cuboids = self.getCubes(ch, listofidxs, resolution, range(timerange[0],timerange[1]))
-          
-          # use the batch generator interface
-          for idx, timestamp, datastring in cuboids:
-
-            # add the query result cube to the bigger cube
-            curxyz = MortonXYZ(int(idx))
-            offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
-
-            if self.NPZ:
-              incube.fromNPZ(datastring[:])
-            else:
-              incube.fromBlosc(datastring[:])
-
-            # apply exceptions if it's an annotation project
-            if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
-              incube.data = filter_ctype_OMP ( incube.data, annoids )
-              if ch.getExceptions() == EXCEPTION_TRUE:
-                self.applyCubeExceptions ( ch, annoids, effresolution, idx, incube )
-            
-            # add it to the output cube
-            outcube.addData( incube, timestamp, offset )
-      
+      if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
+        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, True)
       else:
+        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso)
+      
+      # use the batch generator interface
+      for idx, timestamp, datastring in cuboids:
 
-       #RBTODO this code path should be defunct
-        assert 0
+        # add the query result cube to the bigger cube
+        curxyz = MortonXYZ(int(idx))
+        offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
 
-       # RBTODO this is the annotations path. need to add timestamp support
-        if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-          cuboids = self.getCubes(ch, listofidxs, effresolution, True)
+        if self.NPZ:
+          incube.fromNPZ(datastring[:])
         else:
-          cuboids = self.getCubes(ch, listofidxs, effresolution)
+          incube.fromBlosc(datastring[:])
 
-        # use the batch generator interface
-        for idx, datastring in cuboids:
-
-          # add the query result cube to the bigger cube
-          curxyz = MortonXYZ(int(idx))
-          offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
-          
-          if self.NPZ:
-            incube.fromNPZ ( datastring[:] )
-          else:
-            if datastring:
-              incube.fromBlosc ( datastring[:] )
-
-          # apply exceptions if it's an annotation project
-          if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
-            incube.data = filter_ctype_OMP ( incube.data, annoids )
-            if ch.getExceptions() == EXCEPTION_TRUE:
-              self.applyCubeExceptions ( ch, annoids, effresolution, idx, incube )
-
-          # add it to the output cube
-          outcube.addData ( incube, timestamp, offset ) 
-
+        # apply exceptions if it's an annotation project
+        if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
+          incube.data = filter_ctype_OMP ( incube.data, annoids )
+          if ch.getExceptions() == EXCEPTION_TRUE:
+            self.applyCubeExceptions ( ch, annoids, effresolution, idx, incube )
+        
+        # add it to the output cube
+        outcube.addData( incube, timestamp, offset )
+    
     except:
       self.kvio.rollback()
       raise

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import time
+import itertools
 from toolz import interleave
 from kvindex import KVIndex
 from redispool import RedisPool
@@ -40,7 +41,7 @@ class RedisKVIndex(KVIndex):
     """Generate the name of the Index Store"""
     return settings.REDIS_INDEX_KEY
 
-  def getIndexList(self, ch, listoftimestamps, listofidxs, resolutions, neariso=False):
+  def getIndexList(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Generate the name of the Index Store"""
     if neariso:
       return ['{}&{}&{}&{}&{}&neariso'.format(self.db.proj.project_name, ch.channel_name, resolution, index, timestamp) for (index, timestamp) in itertools.product(listofidxs, listoftimestamps)]

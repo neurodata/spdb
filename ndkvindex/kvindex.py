@@ -41,7 +41,7 @@ class KVIndex(object):
   
 
   @abstractmethod
-  def putCubeIndex(self, ch, listoftimestamps, listofidxs, resolution, listofidxs, neariso=False):
+  def putCubeIndex(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Insert the index list of fetched cubes"""
     return NotImplemented
   
