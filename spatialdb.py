@@ -1101,7 +1101,7 @@ class SpatialDB:
     
     databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
     databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
-
+    
     self.kvio.startTxn()
 
     try:
@@ -1112,6 +1112,7 @@ class SpatialDB:
 
               zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
 
+              # KL TODO make a blind version of the write here which does not get/put
               cube = self.getCube(ch, timestamp, zidx, resolution, update=True)
 
               # KLTODO in test_probability.py overwrite does not work for float32.
@@ -1120,8 +1121,6 @@ class SpatialDB:
 
               # update in the database
               self.putCube(ch, timestamp, zidx, resolution, cube)
-
-      self.kvio.commit()
 
     except:
       self.kvio.rollback()

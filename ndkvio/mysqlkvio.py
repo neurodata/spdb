@@ -37,6 +37,7 @@ class MySQLKVIO(KVIO):
     # Connection info 
     try:
       self.conn = MySQLdb.connect (host = self.db.proj.host, user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname)
+      # self.conn = MySQLdb.connect (host = '127.0.0.1', user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname, port=8007)
 
     except MySQLdb.Error, e:
       self.conn = None
