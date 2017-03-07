@@ -685,7 +685,8 @@ class SpatialDB:
     #xyzcube = [ voxel[0]//xcubedim, voxel[1]//ycubedim, voxel[2]//zcubedim ]
     #xyzoffset =[ voxel[0]%xcubedim, voxel[1]%ycubedim, voxel[2]%zcubedim ]
     key = XYZMorton ( xyzcube )
-
+    
+    # RB FIX This needs a timestamp argument
     cube = self.getCube(ch, timestamp, key, resolution)
 
     if cube is None:
@@ -1108,11 +1109,14 @@ class SpatialDB:
 
               cube = self.getCube(ch, timestamp, zidx, resolution, update=True)
 
+              # KLTODO in test_probability.py overwrite does not work for float32.
               # overwrite the cube -- one timestamp in cube so write to time 0
               cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
 
               # update in the database
               self.putCube(ch, timestamp, zidx, resolution, cube)
+
+      self.kvio.commit()
 
     except:
       self.kvio.rollback()
