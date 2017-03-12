@@ -114,7 +114,7 @@ class SpatialDB:
 #            
 #      return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
 #    else:
-    return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution)
+    return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution, neariso=neariso)
 
 
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
@@ -125,7 +125,7 @@ class SpatialDB:
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
   
-  def putCube(self, ch, timestamp, zidx, resolution, cube, update=False):
+  def putCube(self, ch, timestamp, zidx, resolution, cube, update=False, neariso=False):
     """ Store a cube in the annotation database """
 
     # handle the cube format here
@@ -142,7 +142,7 @@ class SpatialDB:
     if self.NPZ:
       self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toNPZ(), not cube.fromZeros())
     else:
-      self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toBlosc(), not cube.fromZeros())
+      self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toBlosc(), not cube.fromZeros(), neariso=neariso )
   
 
   def getExceptions(self, ch, zidx, timestamp, resolution, annoid):
@@ -532,6 +532,7 @@ class SpatialDB:
       # find the effective dimensions of the cutout (where the data is)
       effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout ( ch, corner, dim, resolution )
       effresolution = ch.resolution
+
     # if cutout is above resolution, get a large cube and scaledown
     elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED]:  
       effcorner, effdim = self._zoomoutCutout ( ch, corner, dim, resolution )
@@ -551,12 +552,6 @@ class SpatialDB:
     znumcubes = (effcorner[2]+effdim[2]+zcubedim-1)/zcubedim - zstart
     ynumcubes = (effcorner[1]+effdim[1]+ycubedim-1)/ycubedim - ystart
     xnumcubes = (effcorner[0]+effdim[0]+xcubedim-1)/xcubedim - xstart
-  
-    # use the requested resolution
-    if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-      dbname = ch.getNearIsoTable(resolution)
-    else:
-      dbname = ch.getTable(effresolution)
 
     incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange )
     outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, timerange=timerange)
@@ -578,71 +573,35 @@ class SpatialDB:
     self.kvio.startTxn()
 
     try:
-
+ 
       # checking for timeseries data and doing an optimized cutout here in timeseries column
-      if True: #ch.channel_type in TIMESERIES_CHANNELS:
+      for idx in listofidxs:
 
-        if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-          cuboids = self.getCubes(ch, listofidxs, effresolution, True)
+        if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[effresolution] > 1:
+          cuboids = self.getCubes(ch, idx, effresolution, range(timerange[0],timerange[1]), neariso=True)
         else:
-          cuboids = self.getCubes(ch, listofidxs, effresolution)
-
-        for idx in listofidxs:
-          cuboids = self.getCubes(ch, idx, resolution, range(timerange[0],timerange[1]))
-          
-          # use the batch generator interface
-          for idx, timestamp, datastring in cuboids:
-
-            # add the query result cube to the bigger cube
-            curxyz = MortonXYZ(int(idx))
-            offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
-
-            if self.NPZ:
-              incube.fromNPZ(datastring[:])
-            else:
-              incube.fromBlosc(datastring[:])
-
-            # apply exceptions if it's an annotation project
-            if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
-              incube.data = filter_ctype_OMP ( incube.data, annoids )
-              if ch.getExceptions() == EXCEPTION_TRUE:
-                self.applyCubeExceptions ( ch, annoids, effresolution, idx, incube )
-            
-            # add it to the output cube
-            outcube.addData( incube, timestamp, offset )
-      
-      else:
-
-       #RBTODO this code path should be defunct
-        assert 0
-
-       # RBTODO this is the annotations path. need to add timestamp support
-        if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-          cuboids = self.getCubes(ch, listofidxs, effresolution, True)
-        else:
-          cuboids = self.getCubes(ch, listofidxs, effresolution)
+          cuboids = self.getCubes(ch, idx, effresolution, range(timerange[0],timerange[1]))
 
         # use the batch generator interface
-        for idx, datastring in cuboids:
+        for idx, timestamp, datastring in cuboids:
 
           # add the query result cube to the bigger cube
           curxyz = MortonXYZ(int(idx))
           offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
-          
+
           if self.NPZ:
-            incube.fromNPZ ( datastring[:] )
+            incube.fromNPZ(datastring[:])
           else:
-            if datastring:
-              incube.fromBlosc ( datastring[:] )
+            incube.fromBlosc(datastring[:])
 
           # apply exceptions if it's an annotation project
           if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
             incube.data = filter_ctype_OMP ( incube.data, annoids )
             if ch.getExceptions() == EXCEPTION_TRUE:
               self.applyCubeExceptions ( ch, annoids, effresolution, idx, incube )
-
+          
           # add it to the output cube
-          outcube.addData ( incube, timestamp, offset ) 
+          outcube.addData( incube, timestamp, offset )
 
     except:
       self.kvio.rollback()
