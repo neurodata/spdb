@@ -355,6 +355,10 @@ class SpatialDB:
 
             key = XYZMorton ([x+xstart,y+ystart,z+zstart])
             cube = self.getCube (ch, timestamp, key, resolution, update=True )
+            if cube.fromZeros():
+              update = False
+            else: 
+               update = True
             
             if conflictopt == 'O':
               cube.overwrite ( 0, databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
@@ -380,7 +384,7 @@ class SpatialDB:
               logger.error ( "Unsupported conflict option %s" % conflictopt )
               raise SpatialDBError ( "Unsupported conflict option %s" % conflictopt )
             
-            self.putCube (ch, timestamp, key, resolution, cube )
+            self.putCube (ch, timestamp, key, resolution, cube, update=update )
 
             # update the index for the cube
             # get the unique elements that are being added to the data
@@ -405,7 +409,7 @@ class SpatialDB:
 
   def annotateEntityDense ( self, ch, entityid, timestamp, corner, resolution, annodata, conflictopt ):
     """Relabel all nonzero pixels to annotation id and call annotateDense"""
-
+ 
     annodata = annotateEntityDense_ctype ( annodata, entityid )
     return self.annotateDense ( ch, timestamp, corner, resolution, annodata, conflictopt )
 
@@ -636,6 +640,8 @@ class SpatialDB:
   # alternate to getVolume that returns a annocube
   def annoCutout ( self, ch, annoids, timestamp, resolution, corner, dim, remapid=None ):
     """Fetch a volume cutout with only the specified annotation"""
+
+    import pdb; pdb.set_trace()
 
     # cutout is zoom aware
     cube = self.cutout(ch, corner, dim, resolution, annoids=annoids, timerange=[timestamp,timestamp+1] )

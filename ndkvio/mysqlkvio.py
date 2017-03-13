@@ -259,7 +259,7 @@ class MySQLKVIO(KVIO):
       
       else:
 
-        if neariso:
+        if not neariso:
           sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
         else:
           sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getNearIsoTable(resolution), zidx, timestamp)
