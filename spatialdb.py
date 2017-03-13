@@ -56,10 +56,11 @@ class SpatialDB:
     # Are there exceptions?
     #self.EXCEPT_FLAG = self.proj.getExceptions()
     self.KVENGINE = self.proj.kvengine
-    self.NPZ = False
+    self.MDENGINE = self.proj.mdengine
     
-    self.kvio = KVIO.getIOEngine(self)
+    self.kvio = KVIO.KVIOFactory(self)
     self.kvindex = KVIndex.getIndexEngine(self)
+    # self.mdio = MDIO.getEngine(self)
 
     # else:
       # raise SpatialDBError ("Unknown key/value store. Engine = {}".format(self.proj.getKVEngine()))
@@ -85,14 +86,8 @@ class SpatialDB:
     # get the block from the database
     cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update, neariso)
 
-    if not cube_str:
-      cube.zeros()
-    else:
-      # handle the cube format here and decompress the cube
-      if self.NPZ:
-        cube.fromNPZ(cube_str)
-      else:
-        cube.fromBlosc(cube_str)
+    # handle the cube format here and decompress the cube
+    cube.deserialize(cube_str)
 
     return cube
 
@@ -140,7 +135,7 @@ class SpatialDB:
     """Insert a cube in the database"""
 
     self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso)
-    self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toBlosc(), not cube.fromZeros())
+    self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros())
       
     # if self.proj.s3backend == S3_TRUE:
       # KLTODO -- broken by tiemstamp changes
@@ -154,7 +149,7 @@ class SpatialDB:
     # if self.NPZ:
       # self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toNPZ(), not cube.fromZeros())
     # else:
-      # self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toBlosc(), not cube.fromZeros())
+      # self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros())
   
 
   def getExceptions(self, ch, zidx, timestamp, resolution, annoid):
@@ -162,10 +157,7 @@ class SpatialDB:
 
     excstr = self.kvio.getExceptions(ch, zidx, timestamp, resolution, annoid)
     if excstr:
-      if self.NPZ:
-        return np.load(cStringIO.StringIO(zlib.decompress(excstr)))
-      else:
-        return blosc.unpack_array(excstr)
+      return blosc.unpack_array(excstr)
     else:
       return []
 
@@ -193,14 +185,9 @@ class SpatialDB:
     """Package the object and transact with kvio"""
     
     exceptions = np.array ( exceptions, dtype=np.uint32 )
-
-    if self.NPZ:
-      fileobj = cStringIO.StringIO ()
-      np.save ( fileobj, exceptions )
-      excstr = fileobj.getvalue()
-      self.kvio.putExceptions(ch, key, timestamp, resolution, exid, zlib.compress(excstr), update)
-    else:
-      self.kvio.putExceptions(ch, key, timestamp, resolution, exid, blosc.pack_array(exceptions), update)
+    
+    # insert exceptions
+    self.kvio.putExceptions(ch, key, timestamp, resolution, exid, blosc.pack_array(exceptions), update)
 
 
   def removeExceptions(self, ch, key, timestamp, resolution, entityid, exceptions):
@@ -569,7 +556,7 @@ class SpatialDB:
       # dbname = ch.getNearIsoTable(resolution)
     # else:
       # dbname = ch.getTable(effresolution)
-
+    
     incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange )
     outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, timerange=timerange)
                                         
@@ -604,10 +591,9 @@ class SpatialDB:
         curxyz = MortonXYZ(int(idx))
         offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
 
-        if self.NPZ:
-          incube.fromNPZ(datastring[:])
-        else:
-          incube.fromBlosc(datastring[:])
+        # deserialize cube from blosc
+        incube.deserialize(datastring)
+        # incube.deserialize(datastring[:])
 
         # apply exceptions if it's an annotation project
         if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
@@ -618,9 +604,9 @@ class SpatialDB:
         # add it to the output cube
         outcube.addData( incube, timestamp, offset )
     
-    except:
+    except Exception as e:
       self.kvio.rollback()
-      raise
+      raise SpatialDBError(e)
 
     self.kvio.commit()
 
@@ -1005,66 +991,66 @@ class SpatialDB:
 
     self.kvio.commit()
 
-  def writeBlazeCuboid(self, ch, corner, resolution, cuboiddata, timerange=None):
-    """Write a blaze cuboid to the database"""
+  # def writeBlazeCuboid(self, ch, corner, resolution, cuboiddata, timerange=None):
+    # """Write a blaze cuboid to the database"""
 
-    # get the size of the image and cube
-    cubedim = self.datasetcfg.cubedim [ resolution ]
+    # # get the size of the image and cube
+    # cubedim = self.datasetcfg.cubedim [ resolution ]
     
-    # Round to the nearest larger cube in all dimensions
-    start = [xstart, ystart, zstart] = map(div, corner, cubedim)
+    # # Round to the nearest larger cube in all dimensions
+    # start = [xstart, ystart, zstart] = map(div, corner, cubedim)
     
-    # Generate the zindex for the BlazeCuboid
-    zidx = XYZMorton(start)
+    # # Generate the zindex for the BlazeCuboid
+    # zidx = XYZMorton(start)
     
-    # insert the cuboid in the database
-    self.kvio.putCube(ch, timestamp, zidx, resolution, cuboiddata, update=True)
+    # # insert the cuboid in the database
+    # self.kvio.putCube(ch, timestamp, zidx, resolution, cuboiddata, update=True)
 
 
-#  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
-#    """Write an arbitary size data to the database"""
-#
-#    # dim is in xyz, data is in zyx order
-#    dim = cuboiddata.shape[::-1]
-#    
-#    # get the size of the image and cube
-#    cubedim = self.datasetcfg.cubedim [ resolution ]
-#    
-#    # round to the nearest larger cube in all dimensions
-#    start = [xstart, ystart, zstart] = map(div, corner, cubedim)
-#
-#    znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
-#    ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
-#    xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
-#
-#    offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
-#    
-#    databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-#    databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
-#
-#    incube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
-#    
-#    self.kvio.startTxn()
-#    
-#    listofidxs = []
-#    listofcubes = []
-#
-#    try:
-#      for z in range(znumcubes):
-#        for y in range(ynumcubes):
-#          for x in range(xnumcubes):
-#
-#            listofidxs.append(XYZMorton ([x+xstart,y+ystart,z+zstart]))
-#            incube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ]
-#            listofcubes.append(incube.toBlosc())
-#
-#      self.putCubes(ch, listofidxs, resolution, listofcubes, update=False)
-#
-#    except:
-#      self.kvio.rollback()
-#      raise
-#
-#    self.kvio.commit()
+ # def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
+   # """Write an arbitary size data to the database"""
+
+   # # dim is in xyz, data is in zyx order
+   # dim = cuboiddata.shape[::-1]
+   
+   # # get the size of the image and cube
+   # cubedim = self.datasetcfg.cubedim [ resolution ]
+   
+   # # round to the nearest larger cube in all dimensions
+   # start = [xstart, ystart, zstart] = map(div, corner, cubedim)
+
+   # znumcubes = (corner[2]+dim[2]+zcubedim-1)/zcubedim - zstart
+   # ynumcubes = (corner[1]+dim[1]+ycubedim-1)/ycubedim - ystart
+   # xnumcubes = (corner[0]+dim[0]+xcubedim-1)/xcubedim - xstart
+
+   # offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
+   
+   # databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
+   # databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
+
+   # incube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
+   
+   # self.kvio.startTxn()
+   
+   # listofidxs = []
+   # listofcubes = []
+
+   # try:
+     # for z in range(znumcubes):
+       # for y in range(ynumcubes):
+         # for x in range(xnumcubes):
+
+           # listofidxs.append(XYZMorton ([x+xstart,y+ystart,z+zstart]))
+           # incube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ]
+           # listofcubes.append(incube.serialize())
+
+     # self.putCubes(ch, listofidxs, resolution, listofcubes, update=False)
+
+   # except:
+     # self.kvio.rollback()
+     # raise
+
+   # self.kvio.commit()
 
 
   def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,1]):

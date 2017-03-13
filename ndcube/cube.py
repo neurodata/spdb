@@ -73,6 +73,22 @@ class Cube(object):
   def trim ( self, xoffset, xsize, yoffset, ysize, zoffset, zsize ):
     """Trim off the excess data"""
     self.data = self.data[zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize]
+  
+
+  def deserialize(self, compressed_data):
+    """Deserialize the cube data"""
+    if not compressed_data:
+      self.zeros()
+    else:
+      self.fromBlosc(compressed_data)
+    
+    self._newcube = False
+
+
+  def serialize(self):
+    """Serialize the cube data"""
+    return self.toBlosc()
+
 
   def fromNPZ ( self, compressed_data ):
     """Load the cube from a pickled and zipped blob"""
