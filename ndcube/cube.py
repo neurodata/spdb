@@ -154,7 +154,7 @@ class Cube(object):
     return NotImplemented
 
   @abstractmethod
-  def xyImage(self):
+  def xyImage(self, window=None):
     """Create a xy slice"""
     return NotImplemented
 

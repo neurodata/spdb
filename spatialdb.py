@@ -105,7 +105,7 @@ class SpatialDB:
           # call putCubes and update index in the table before returning data
           self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
 
-    return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso)
+    return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
    # if listoftimestamps is None:
      # if self.proj.s3backend == S3_TRUE:
        # ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
@@ -122,7 +122,6 @@ class SpatialDB:
      # return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
    # else:
 
-
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Insert a list of cubes"""
     
@@ -135,7 +134,7 @@ class SpatialDB:
     """Insert a cube in the database"""
 
     self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso)
-    self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros())
+    self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros(), neariso=neariso)
       
     # if self.proj.s3backend == S3_TRUE:
       # KLTODO -- broken by tiemstamp changes
@@ -354,6 +353,10 @@ class SpatialDB:
 
             key = XYZMorton ([x+xstart,y+ystart,z+zstart])
             cube = self.getCube (ch, timestamp, key, resolution, update=True )
+            if cube.fromZeros():
+              update = False
+            else: 
+               update = True
             
             if conflictopt == 'O':
               cube.overwrite ( 0, databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
@@ -379,7 +382,7 @@ class SpatialDB:
               logger.error ( "Unsupported conflict option %s" % conflictopt )
               raise SpatialDBError ( "Unsupported conflict option %s" % conflictopt )
             
-            self.putCube (ch, timestamp, key, resolution, cube )
+            self.putCube (ch, timestamp, key, resolution, cube, update=update )
 
             # update the index for the cube
             # get the unique elements that are being added to the data
@@ -404,7 +407,7 @@ class SpatialDB:
 
   def annotateEntityDense ( self, ch, entityid, timestamp, corner, resolution, annodata, conflictopt ):
     """Relabel all nonzero pixels to annotation id and call annotateDense"""
-
+ 
     annodata = annotateEntityDense_ctype ( annodata, entityid )
     return self.annotateDense ( ch, timestamp, corner, resolution, annodata, conflictopt )
 
@@ -531,6 +534,7 @@ class SpatialDB:
       # find the effective dimensions of the cutout (where the data is)
       effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout ( ch, corner, dim, resolution )
       effresolution = ch.resolution
+
     # if cutout is above resolution, get a large cube and scaledown
     elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED]:  
       effcorner, effdim = self._zoomoutCutout ( ch, corner, dim, resolution )
@@ -550,12 +554,6 @@ class SpatialDB:
     znumcubes = (effcorner[2]+effdim[2]+zcubedim-1)/zcubedim - zstart
     ynumcubes = (effcorner[1]+effdim[1]+ycubedim-1)/ycubedim - ystart
     xnumcubes = (effcorner[0]+effdim[0]+xcubedim-1)/xcubedim - xstart
-  
-    # # use the requested resolution
-    # if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-      # dbname = ch.getNearIsoTable(resolution)
-    # else:
-      # dbname = ch.getTable(effresolution)
     
     incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange )
     outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, timerange=timerange)
@@ -578,11 +576,10 @@ class SpatialDB:
     self.kvio.startTxn()
 
     try:
-
       if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
-        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, True)
+        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=True)
       else:
-        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso)
+        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=False)
       
       # use the batch generator interface
       for idx, timestamp, datastring in cuboids:
