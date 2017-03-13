@@ -641,8 +641,6 @@ class SpatialDB:
   def annoCutout ( self, ch, annoids, timestamp, resolution, corner, dim, remapid=None ):
     """Fetch a volume cutout with only the specified annotation"""
 
-    import pdb; pdb.set_trace()
-
     # cutout is zoom aware
     cube = self.cutout(ch, corner, dim, resolution, annoids=annoids, timerange=[timestamp,timestamp+1] )
 
