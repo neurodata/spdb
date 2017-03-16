@@ -1111,7 +1111,7 @@ class SpatialDB:
               self.putCube(ch, timestamp, zidx, resolution, cube)
 
         # RB hack to commit when the file is too big for mysql log
-        if xnumcubes*ynumcubes > 1000:
+        if xnumcubes*ynumcubes >= 100:
           self.kvio.commit()
 
     except:
