@@ -233,14 +233,20 @@ class MySQLKVIO(KVIO):
     """Store a cube from the annotation database"""
 
     cursor = self.conn.cursor()
-
+    
     # we created a cube from zeros
     if not update:
-      sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
+      if timestamp is None:
+        sql = "INSERT INTO {} (zindex, cube) VALUES (%s, %s)".format(ch.getTable(resolution))
+      else:
+        sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
 
       # this uses a cursor defined in the caller (locking context): not beautiful, but needed for locking
       try:
-        cursor.execute ( sql, (zidx, timestamp, cubestr) ) 
+        if timestamp is None:
+          cursor.execute ( sql, (zidx, cubestr) ) 
+        else:
+          cursor.execute ( sql, (zidx, timestamp, cubestr) ) 
       
       except MySQLdb.Error, e:
         logger.error("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
@@ -250,7 +256,10 @@ class MySQLKVIO(KVIO):
         cursor.close()
 
     else:
-      sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
+      if timestamp is None:
+        sql = "UPDATE {} SET cube=(%s) WHERE zindex={}".format(ch.getTable(resolution), zidx)
+      else:
+        sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
       
       try:
         cursor.execute( sql, (cubestr,) )
