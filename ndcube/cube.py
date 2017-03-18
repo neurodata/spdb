@@ -77,18 +77,15 @@ class Cube(object):
 
   def deserialize(self, compressed_data):
     """Deserialize the cube data"""
+    self._newcube = False
     if not compressed_data:
       self.zeros()
     else:
       self.fromBlosc(compressed_data)
-    
-    self._newcube = False
-
 
   def serialize(self):
     """Serialize the cube data"""
     return self.toBlosc()
-
 
   def fromNPZ ( self, compressed_data ):
     """Load the cube from a pickled and zipped blob"""

@@ -34,5 +34,33 @@ class TimeCube32(TimeCube):
     super(TimeCube32, self).zeros()
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint32)
 
+  def xyImage ( self ):
+    """Create the specified slice (index)"""
 
-  # RBTODO RGB xy/yz/xz slices.
+    zdim,ydim,xdim = self.data.shape
+    return Image.fromarray( self.data[0,:,:], "RGBA")
+
+  def xzImage ( self, zscale ):
+    """Create the specified slice (index)"""
+
+    zdim,ydim,xdim = self.data.shape
+    outimage = Image.fromarray( self.data[:,0,:], "RGBA")
+    return outimage.resize ( [xdim, int(zdim*zscale)] )
+
+  def yzImage ( self, zscale ):
+    """Create the specified slice (index)"""
+
+    zdim,ydim,xdim = self.data.shape
+    outimage = Image.fromarray( self.data[:,:,0], "RGBA")
+    return outimage.resize ( [ydim, int(zdim*zscale)] )
+
+  def RGBAChannel ( self ):
+  """Convert the uint32 back into 4x8 bit channels"""
+
+    zdim, ydim, xdim = self.data.shape
+    newcube = np.zeros( (4, zdim, ydim, xdim), dtype=np.uint8 )
+    newcube[0,:,:,:] = np.bitwise_and(self.data, 0xff, dtype=np.uint8)
+    newcube[1,:,:,:] = np.uint8 ( np.right_shift( self.data, 8) & 0xff )
+    newcube[2,:,:,:] = np.uint8 ( np.right_shift( self.data, 16) & 0xff )
+    newcube[3,:,:,:] = np.uint8 ( np.right_shift (self.data, 24) )
+    self.data = newcube

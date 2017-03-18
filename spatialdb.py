@@ -132,7 +132,7 @@ class SpatialDB:
   
   def putCube(self, ch, timestamp, zidx, resolution, cube, update=False, neariso=False):
     """Insert a cube in the database"""
-
+    
     self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso)
     self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros(), neariso=neariso)
       

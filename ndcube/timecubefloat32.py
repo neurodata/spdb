@@ -43,12 +43,13 @@ class TimeCubeFloat32(TimeCube):
   def xyImage(self, window=None):
     """Create xy slice"""
 
+    import pdb; pdb.set_trace()
     if len(self.data.shape) == 3:
       zdim, ydim, xdim = self.data.shape
     else:
       zdim,ydim,xdim = self.data.shape[1:]
 
-    window = map(float,window)
+    window = map(float, window)
 
     if window==None:
       # translate the 0-1 map down to to 256 value

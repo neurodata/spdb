@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import MySQLdb
 from kvio import KVIO
 from ndtype import OLDCHANNEL
@@ -147,30 +148,33 @@ class MySQLKVIO(KVIO):
       return row[0]
 
   
-  def getCubes(self, ch, listofidxs, resolution, neariso=False):
+  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
     if self.txncursor is None:
       cursor = self.conn.cursor()
     else:
       cursor = self.txncursor
-   
+    
+    # creating a list of tuples (zindex, timestamp) and unrolling them for sql execution as [zindex, timestamp, zindex, timestamp]
+    index_list = list(itertools.chain.from_iterable(itertools.product(listofidxs, listoftimestamps)))
+
     if ch.channel_type == OLDCHANNEL:
       channel_id = self.getChannelId(ch)
       sql = "SELECT zindex,cube FROM {} where channel={} and zindex in (%s)".format( ch.getTable(resolution), channel_id)
     else:
       if neariso:
-        sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getNearIsoTable(resolution) ) 
+        sql = "SELECT zindex, timestamp, cube FROM {} WHERE (zindex, timestamp) in (%s)".format( ch.getNearIsoTable(resolution) ) 
       else:
-        sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getTable(resolution) ) 
+        sql = "SELECT zindex, timestamp, cube FROM {} WHERE (zindex, timestamp) in (%s)".format( ch.getTable(resolution) ) 
 
     # creats a %s for each list element
-    in_p=', '.join(map(lambda x: '%s', listofidxs))
+    in_p=', '.join(map(lambda x: '(%s,%s)', [1]*(len(index_list)/2)))
     # replace the single %s with the in_p string
     sql = sql % in_p
 
     try:
-      rc = cursor.execute(sql, listofidxs)
+      rc = cursor.execute(sql, index_list)
     
       # Get the objects and add to the cube
       while ( True ):
