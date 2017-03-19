@@ -525,7 +525,7 @@ class SpatialDB:
     return effcorner, effdim 
 
 
-  def cutout(self, ch, corner, dim, resolution, timerange=[0,1], zscaling=None, annoids=None, neariso=False):
+  def cutout(self, ch, corner, dim, resolution, timerange, zscaling=None, annoids=None, neariso=False):
     """Extract a cube of arbitrary size. Need not be aligned."""
 
     [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution) 
