@@ -23,7 +23,7 @@ import blosc
 from contextlib import closing
 from operator import add, sub, div, mod, mul
 from spdb.ndcube.cube import Cube
-from ndmanager.readerlock import ReaderLock
+#from ndmanager.readerlock import ReaderLock
 import spdb.s3io as s3io
 from spdb.ndkvio.kvio import KVIO
 import annindex
@@ -51,7 +51,7 @@ class SpatialDB:
     self.proj = proj
     
     # Set the S3 backend for the data
-    self.s3io = s3io.S3IO(self)
+#    self.s3io = s3io.S3IO(self)
 
     # Are there exceptions?
     #self.EXCEPT_FLAG = self.proj.getExceptions()
@@ -95,7 +95,7 @@ class SpatialDB:
 
     return cube
 
-  @ReaderLock
+#  @ReaderLock
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
 
@@ -120,8 +120,8 @@ class SpatialDB:
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
     """Insert a list of cubes"""
     
-    if self.proj.s3backend == S3_TRUE:
-      self.kvindex.putCubeIndex(ch, resolution, listofidxs)
+#    if self.proj.s3backend == S3_TRUE:
+#      self.kvindex.putCubeIndex(ch, resolution, listofidxs)
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
   
@@ -129,7 +129,9 @@ class SpatialDB:
     """ Store a cube in the annotation database """
 
     # handle the cube format here
-    if self.proj.s3backend == S3_TRUE:
+#RBTODO
+    if False:
+#    if self.proj.s3backend == S3_TRUE:
       # KLTODO -- broken by tiemstamp changes
       if ch.channel_type in TIMESERIES_CHANNELS and timestamp is not None:
         self.kvindex.putCubeIndex(ch, resolution, [zidx], [timestamp])
