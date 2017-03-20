@@ -162,49 +162,6 @@ class MySQLKVIO(KVIO):
         cursor.close()
    
   
-  def getTimeCubes(self, ch, idx, listoftimestamps, resolution, neariso=False):
-
-    # if in a TxN us the transaction cursor.  Otherwise create one.
-    if self.txncursor is None:
-      cursor = self.conn.cursor()
-    else:
-      cursor = self.txncursor
-   
-    if not neariso:
-      sql = "SELECT zindex,timestamp,cube FROM {} WHERE zindex={} and timestamp in (%s)".format(ch.getTable(resolution), idx)
-    else:
-      sql = "SELECT zindex,timestamp,cube FROM {} WHERE zindex={} and timestamp in (%s)".format(ch.getNearIsoTable(resolution), idx)
-
-    # creats a %s for each list element
-    in_p=', '.join(map(lambda x: '%s', listoftimestamps))
-    # replace the single %s with the in_p string
-    sql = sql % in_p
-
-    try:
-      rc = cursor.execute(sql, listoftimestamps)
-    
-      # Get the objects and add to the cube
-      while ( True ):
-        try: 
-          retval = cursor.fetchone() 
-        except:
-          break
-        if retval is not None:
-          yield ( retval )
-        else:
-          return
-    
-    except MySQLdb.Error, e:
-      logger.error("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-      raise SpatialDBError("Failed to retrieve data cubes: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
- 
-    finally:
-      # close the local cursor if not in a transaction
-      if self.txncursor is None:
-        cursor.close()
-   
-
-
   def putCube ( self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False):
     """Store a cube from the annotation database"""
     
