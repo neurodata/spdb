@@ -38,7 +38,6 @@ class MySQLKVIO(KVIO):
     # Connection info 
     try:
       self.conn = MySQLdb.connect (host = self.db.proj.host, user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname)
-      # self.conn = MySQLdb.connect (host = '127.0.0.1', user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname, port=8007)
 
     except MySQLdb.Error, e:
       self.conn = None
@@ -218,25 +217,20 @@ class MySQLKVIO(KVIO):
     try:
       # we created a cube from zeros
       if not update:
-
         if not neariso:
           sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
         else:
           sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getNearIsoTable(resolution))
-
         # this uses a cursor defined in the caller (locking context): not beautiful, but needed for locking
         cursor.execute ( sql, (zidx, timestamp, cubestr) ) 
       
       else:
-
         if not neariso:
           sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
         else:
           sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getNearIsoTable(resolution), zidx, timestamp)
-
         cursor.execute( sql, (cubestr,) )
       
-
     except MySQLdb.Error, e:
       logger.error("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
       raise SpatialDBError("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
