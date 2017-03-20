@@ -21,6 +21,8 @@ from operator import add, sub, mul, div, mod
 from django.conf import settings
 from ndlib.ndctypelib import XYZMorton, MortonXYZ
 from ndlib.s3util import generateS3BucketName, generateS3Key
+from ndingest.nddynamo.cuboidindexdb import CuboidIndexDB
+from ndingest.ndbucket.cuboidbucket import CuboidBucket
 from spdb.spatialdberror import SpatialDBError
 from ndingest.settings.settings import Settings
 ndingest_settings = Settings.load()
@@ -37,6 +39,8 @@ class S3IO:
       self.db = db
       self.client = boto3.client('s3', region_name=region_name, endpoint_url=endpoint_url, aws_access_key_id=ndingest_settings.AWS_ACCESS_KEY_ID, aws_secret_access_key=ndingest_settings.AWS_SECRET_ACCESS_KEY)
       self.project_name = self.db.proj.project_name
+      self.cuboidindex_db = CuboidIndexDB(self.project_name, endpoint_url=ndingest_settings.DYNAMO_ENDPOINT)
+      self.cuboid_bucket = CuboidBucket(self.project_name, endpoint_url=ndingest_settings.S3_ENDPOINT)
     except Exception, e:
       logger.error("Cannot connect to S3 backend")
       raise SpatialDBError("Cannot connect to S3 backend")
@@ -91,41 +95,42 @@ class S3IO:
     
     return zidx_list, cube_list
   
-  def getCube(self, ch, zidx, timestamp, resolution, update=False):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
     
     # KL TODO replace this by ndingest cuboidbucket
     super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
-      super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx)).get('Body').read()
+      # super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx)).get('Body').read()
+      super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, timestamp, neariso=neariso)
       return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
       raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
     
-  def getCubes(self, ch, listofidxs, resolution, neariso=False):
-    """Retrieve multiple cubes from the database"""
+  # def getCubes(self, ch, listofidxs, resolution, neariso=False):
+    # """Retrieve multiple cubes from the database"""
     
-    # KL TODO replace this by ndingest cuboidbucket
-    super_listofidxs = Set([])
-    for zidx in listofidxs:
-      super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
+    # # KL TODO replace this by ndingest cuboidbucket
+    # super_listofidxs = Set([])
+    # for zidx in listofidxs:
+      # super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
     
-    for super_zidx in super_listofidxs:
-      try:
-        super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx)).get('Body').read()
-        yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
-      except botocore.exceptions.DataNotFoundError as e:
-        logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
-        raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
-      except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == 'NoSuckKey':
-          continue
-        if e.response['Error']['Code'] == 'NoSuchBucket':
-          pass
+    # for super_zidx in super_listofidxs:
+      # try:
+        # super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx)).get('Body').read()
+        # yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
+      # except botocore.exceptions.DataNotFoundError as e:
+        # logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+        # raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+      # except botocore.exceptions.ClientError as e:
+        # if e.response['Error']['Code'] == 'NoSuckKey':
+          # continue
+        # if e.response['Error']['Code'] == 'NoSuchBucket':
+          # pass
   
 
-  def getTimeCubes(self, ch, listofidxsidx, listoftimestamps, resolution):
+  def getCubes(self, ch, listoftimestamps, listofidxsidx, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     
     # KL TODO Test this function
@@ -136,7 +141,8 @@ class S3IO:
     for time_index in listoftimestamps:
       for super_zidx in super_listofidxs:
         try:
-          super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx, time_index)).get('Body').read()
+          # super_cube = self.client.get_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx, time_index)).get('Body').read()
+          super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, time_index, neariso=neariso)
           yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
         except botocore.exceptions.DataNotFoundError as e:
           logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
@@ -152,15 +158,19 @@ class S3IO:
     # KL TODO This should be replaced by Blaze
     return NotImplemented
   
-  def putCube ( self, ch, resolution, super_zidx, cubestr, timestamp=None, update=False ):
+  def putCube ( self, ch, timestamp, super_zidx, resolution, cubestr, update=False, neariso=False):
     """Store a cube from the annotation database"""
+    
+    [x, y, z] = MortonXYZ(super_zidx)
+    self.cuboidindex_db.putItem(ch.channel_name, resolution, x, y, z, timestamp, neariso=neariso)
+    return self.cuboid_bucket.putObject(ch.channel_name, resolution, super_zidx, timestamp, cubestr, neariso=neariso)
     
     # super_zidx = self.generateSuperZindex(zidx, resolution)
     # KL TODO replace this by ndingest cuboidbucket
-    try:
-      response = self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx), Body=cubestr)
-    except botocore.exceptions.EndpointConnectionError as e:
-      logger.error("Cannot write s3 object. {}".format(e))
-      raise SpatialDBError("Cannot write s3 object. {}".format(e))
+    # try:
+      # response = self.client.put_object(Bucket=generateS3BucketName(), Key=generateS3Key(self.project_name, ch.channel_name, resolution, super_zidx), Body=cubestr)
+    # except botocore.exceptions.EndpointConnectionError as e:
+      # logger.error("Cannot write s3 object. {}".format(e))
+      # raise SpatialDBError("Cannot write s3 object. {}".format(e))
     
-    return response
+    # return response
