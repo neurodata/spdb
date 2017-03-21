@@ -130,7 +130,7 @@ class S3IO:
           # pass
   
 
-  def getCubes(self, ch, listoftimestamps, listofidxsidx, resolution, neariso=False):
+  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     
     # KL TODO Test this function

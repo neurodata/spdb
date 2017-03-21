@@ -96,14 +96,14 @@ class SpatialDB:
     """Return a list of cubes"""
 
     if self.proj.s3backend == S3_TRUE:
-      ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso)
+      ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
       if ids_to_fetch:
         # logger.debug("Cache Miss: {}".format(listofidxs))
-        super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution, neariso)
+        super_cuboids = self.s3io.getCubes(ch, listoftimestamps, ids_to_fetch, resolution, neariso=neariso)
         # iterating over super_cuboids
         for superlistofidxs, superlistofcubes in super_cuboids:
           # call putCubes and update index in the table before returning data
-          self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
+          self.putCubes(ch, listoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
 
     return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
    # if listoftimestamps is None:
@@ -126,8 +126,8 @@ class SpatialDB:
     """Insert a list of cubes"""
     
     if self.proj.s3backend == S3_TRUE:
-      self.kvindex.putCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=False)
-    return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update, neariso)
+      self.kvindex.putCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+    return self.kvio.putCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
 
   
   def putCube(self, ch, timestamp, zidx, resolution, cube, update=False, neariso=False):
@@ -525,7 +525,7 @@ class SpatialDB:
     return effcorner, effdim 
 
 
-  def cutout(self, ch, corner, dim, resolution, timerange, zscaling=None, annoids=None, neariso=False):
+  def cutout(self, ch, corner, dim, resolution, timerange, annoids=None, neariso=False):
     """Extract a cube of arbitrary size. Need not be aligned."""
 
     [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution) 
@@ -576,7 +576,7 @@ class SpatialDB:
     self.kvio.startTxn()
 
     try:
-      if zscaling == 'nearisotropic' and self.datasetcfg.nearisoscaledown[resolution] > 1:
+      if neariso and self.datasetcfg.nearisoscaledown[resolution] > 1:
         cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=True)
       else:
         cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=False)
