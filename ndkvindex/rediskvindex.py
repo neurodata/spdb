@@ -49,8 +49,11 @@ class RedisKVIndex(KVIndex):
       return ['{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, index, timestamp) for (index, timestamp) in itertools.product(listofidxs, listoftimestamps)]
     # return ['{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, index) for index in listofidxs]
   
-  def cleanIndexList(self, index_list):
-    return [ index.split('&')[-1] for index in index_list]
+  def cleanIndexList(self, index_list, neariso=False):
+    if neariso:
+      return [ index.split('&')[-2] for index in index_list]
+    else:
+      return [ index.split('&')[-1] for index in index_list]
   
   def getCubeIndex(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Retrieve the indexes of inserted cubes"""
@@ -78,7 +81,7 @@ class RedisKVIndex(KVIndex):
       logger.error("Error retrieving cube indexes into the database. {}".format(e))
       raise SpatialDBError("Error retrieving cube indexes into the database. {}".format(e))
     
-    return self.cleanIndexList(ids_to_fetch)
+    return self.cleanIndexList(ids_to_fetch, neariso=neariso)
  
   def putCubeIndex(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Add the listofidxs to the store"""
