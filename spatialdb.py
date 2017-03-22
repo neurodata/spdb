@@ -51,7 +51,10 @@ class SpatialDB:
     self.proj = proj
     
     # Set the S3 backend for the data
-    self.s3io = s3io.S3IO(self)
+    try:
+      self.s3io = s3io.S3IO(self)
+    except Exception as e:
+      print("S3 not configured")
 
     # Are there exceptions?
     #self.EXCEPT_FLAG = self.proj.getExceptions()
@@ -59,19 +62,23 @@ class SpatialDB:
     self.MDENGINE = self.proj.mdengine
     
     self.kvio = KVIO.KVIOFactory(self)
-    self.kvindex = KVIndex.getIndexEngine(self)
+    try:
+      self.kvindex = KVIndex.getIndexEngine(self)
+    except Exception as e:
+      print("KVIndex failed to load")
+
     # self.mdio = MDIO.getEngine(self)
-
-    # else:
-      # raise SpatialDBError ("Unknown key/value store. Engine = {}".format(self.proj.getKVEngine()))
-
     self.annoIdx = annindex.AnnotateIndex ( self.kvio, self.proj )
+
 
   def close ( self ):
     """Close the connection"""
 
     self.kvio.close()
-    self.kvindex.close()
+    try:
+      self.kvindex.close()
+    except Exception as e:
+      print("KVIndex failed to load")
 
 
   @ReaderLock
@@ -84,12 +91,13 @@ class SpatialDB:
     cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, [0,1])
   
     # get the block from the database
-    cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update, neariso)
+    cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
 
     # handle the cube format here and decompress the cube
     cube.deserialize(cube_str)
 
     return cube
+
 
   @ReaderLock
   def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
@@ -97,6 +105,7 @@ class SpatialDB:
 
     if self.proj.s3backend == S3_TRUE:
       ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+      # checking if the index exists inside the database or not
       if ids_to_fetch:
         # logger.debug("Cache Miss: {}".format(listofidxs))
         super_cuboids = self.s3io.getCubes(ch, listoftimestamps, ids_to_fetch, resolution, neariso=neariso)
@@ -106,21 +115,7 @@ class SpatialDB:
           self.putCubes(ch, listoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
 
     return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
-   # if listoftimestamps is None:
-     # if self.proj.s3backend == S3_TRUE:
-       # ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
-       # # checking if the index exists inside the database or not
-       # if ids_to_fetch:
-         # # logger.debug("Cache Miss: {}".format(listofidxs))
-         # super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
-         
-         # # iterating over super_cuboids
-         # for superlistofidxs, superlistofcubes in super_cuboids:
-            # call putCubes and update index in the table before returning data
-           # self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
-           
-     # return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
-   # else:
+   
 
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Insert a list of cubes"""
@@ -136,20 +131,6 @@ class SpatialDB:
     self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso)
     self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros(), neariso=neariso)
       
-    # if self.proj.s3backend == S3_TRUE:
-      # KLTODO -- broken by tiemstamp changes
-      # if ch.channel_type in TIMESERIES_CHANNELS and timestamp is not None:
-      # elif ch.channel_type not in TIMESERIES_CHANNELS and timestamp is None:
-        # self.kvindex.putCubeIndex(ch, resolution, [zidx])
-      # else:
-        # logger.error("Timestamp is not None for Image Channels.")
-        # raise SpatialDBError("Timestamp is not None for Image Channels.")
-
-    # if self.NPZ:
-      # self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toNPZ(), not cube.fromZeros())
-    # else:
-      # self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros())
-  
 
   def getExceptions(self, ch, zidx, timestamp, resolution, annoid):
     """Load a cube from the annotation database"""
@@ -319,7 +300,7 @@ class SpatialDB:
     self.kvio.commit()
 
 
-  def annotateDense ( self, ch, timestamp, corner, resolution, annodata, conflictopt='O' ):
+  def annotateDense ( self, ch, timestamp, corner, resolution, annodata, conflictopt='O', neariso=False ):
     """Process all the annotations in the dense volume"""
 
     index_dict = defaultdict(set)
@@ -352,7 +333,7 @@ class SpatialDB:
           for x in range(xnumcubes):
 
             key = XYZMorton ([x+xstart,y+ystart,z+zstart])
-            cube = self.getCube (ch, timestamp, key, resolution, update=True )
+            cube = self.getCube (ch, timestamp, key, resolution, update=True, neariso=neariso )
             if cube.fromZeros():
               update = False
             else: 
@@ -381,27 +362,32 @@ class SpatialDB:
             else:
               logger.error ( "Unsupported conflict option %s" % conflictopt )
               raise SpatialDBError ( "Unsupported conflict option %s" % conflictopt )
-            
-            self.putCube (ch, timestamp, key, resolution, cube, update=update )
 
-            # update the index for the cube
-            # get the unique elements that are being added to the data
-            uniqueels = np.unique ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
-            for el in uniqueels:
-              index_dict[el].add(key) 
+            self.putCube (ch, timestamp, key, resolution, cube, update=update, neariso=neariso )
 
-            # remove 0 no reason to index that
-            if 0 in index_dict:
-              del(index_dict[0])
+            # RBTODO do we need to buiild neariso indexes or are they visual only?
+            if not neariso:
+
+              # update the index for the cube
+              # get the unique elements that are being added to the data
+              uniqueels = np.unique ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+              for el in uniqueels:
+                index_dict[el].add(key) 
+
+              # remove 0 no reason to index that
+              if 0 in index_dict:
+                del(index_dict[0])
 
       # update all indexes
-      self.annoIdx.updateIndexDense(ch, index_dict, timestamp, resolution )
-      # commit cubes.  not commit controlled with metadata
+
+      if not neariso:
+        self.annoIdx.updateIndexDense(ch, index_dict, timestamp, resolution )
 
     except:
       self.kvio.rollback()
       raise
     
+    # commit cubes.  not commit controlled with metadata
     self.kvio.commit()
 
 
