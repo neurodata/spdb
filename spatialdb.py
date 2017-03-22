@@ -50,8 +50,12 @@ class SpatialDB:
     self.datasetcfg = proj.datasetcfg 
     self.proj = proj
     
-    # Set the S3 backend for the data
-#    self.s3io = s3io.S3IO(self)
+# RBMYSQL
+#    # Set the S3 backend for the data
+#    try:
+#      self.s3io = s3io.S3IO(self)
+#    except:
+#      print("S3 not configured")
 
     # Are there exceptions?
     #self.EXCEPT_FLAG = self.proj.getExceptions()
@@ -59,7 +63,12 @@ class SpatialDB:
     self.NPZ = False
     
     self.kvio = KVIO.getIOEngine(self)
-    self.kvindex = KVIndex.getIndexEngine(self)
+
+# RBMYSQL
+#    try:
+#      self.kvindex = KVIndex.getIndexEngine(self)
+#    except:
+#      print("KVIndex failed to load")
 
     # else:
       # raise SpatialDBError ("Unknown key/value store. Engine = {}".format(self.proj.getKVEngine()))
@@ -70,10 +79,11 @@ class SpatialDB:
     """Close the connection"""
 
     self.kvio.close()
-    self.kvindex.close()
+# RBMYSQL
+#    self.kvindex.close()
 
 
-  def getCube(self, ch, timestamp, zidx, resolution, update=False):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
     """Load a cube from the database"""
 
     # get the size of the image and cube
@@ -82,7 +92,7 @@ class SpatialDB:
     cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, [0,1])
   
     # get the block from the database
-    cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update=update)
+    cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
 
     if not cube_str:
       cube.zeros()
@@ -99,6 +109,7 @@ class SpatialDB:
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
 
+# RBMYSQL
 #    if listoftimestamps is None:
 #      if self.proj.s3backend == S3_TRUE:
 #        ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
@@ -120,6 +131,7 @@ class SpatialDB:
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
     """Insert a list of cubes"""
     
+# RBMYSQL
 #    if self.proj.s3backend == S3_TRUE:
 #      self.kvindex.putCubeIndex(ch, resolution, listofidxs)
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
@@ -129,17 +141,15 @@ class SpatialDB:
     """ Store a cube in the annotation database """
 
     # handle the cube format here
-#RBTODO
-    if False:
 #    if self.proj.s3backend == S3_TRUE:
-      # KLTODO -- broken by tiemstamp changes
-      if ch.channel_type in TIMESERIES_CHANNELS and timestamp is not None:
-        self.kvindex.putCubeIndex(ch, resolution, [zidx], [timestamp])
-      elif ch.channel_type not in TIMESERIES_CHANNELS and timestamp is None:
-        self.kvindex.putCubeIndex(ch, resolution, [zidx])
-      else:
-        logger.error("Timestamp is not None for Image Channels.")
-        raise SpatialDBError("Timestamp is not None for Image Channels.")
+#      # KLTODO -- broken by tiemstamp changes
+#      if ch.channel_type in TIMESERIES_CHANNELS and timestamp is not None:
+#        self.kvindex.putCubeIndex(ch, resolution, [zidx], [timestamp])
+#      elif ch.channel_type not in TIMESERIES_CHANNELS and timestamp is None:
+#        self.kvindex.putCubeIndex(ch, resolution, [zidx])
+#      else:
+#        logger.error("Timestamp is not None for Image Channels.")
+#        raise SpatialDBError("Timestamp is not None for Image Channels.")
 
     if self.NPZ:
       self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toNPZ(), not cube.fromZeros())
@@ -323,7 +333,7 @@ class SpatialDB:
     self.kvio.commit()
 
 
-  def annotateDense ( self, ch, timestamp, corner, resolution, annodata, conflictopt='O' ):
+  def annotateDense ( self, ch, timestamp, corner, resolution, annodata, conflictopt='O', neariso=False ):
     """Process all the annotations in the dense volume"""
 
     index_dict = defaultdict(set)
@@ -356,7 +366,7 @@ class SpatialDB:
           for x in range(xnumcubes):
 
             key = XYZMorton ([x+xstart,y+ystart,z+zstart])
-            cube = self.getCube (ch, timestamp, key, resolution, update=True )
+            cube = self.getCube (ch, timestamp, key, resolution, update=True, neariso=neariso )
             if cube.fromZeros():
               update = False
             else: 
@@ -385,27 +395,32 @@ class SpatialDB:
             else:
               logger.error ( "Unsupported conflict option %s" % conflictopt )
               raise SpatialDBError ( "Unsupported conflict option %s" % conflictopt )
-            
-            self.putCube (ch, timestamp, key, resolution, cube, update=update )
 
-            # update the index for the cube
-            # get the unique elements that are being added to the data
-            uniqueels = np.unique ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
-            for el in uniqueels:
-              index_dict[el].add(key) 
+            self.putCube (ch, timestamp, key, resolution, cube, update=update, neariso=neariso )
 
-            # remove 0 no reason to index that
-            if 0 in index_dict:
-              del(index_dict[0])
+            # RBTODO do we need to buiild neariso indexes or are they visual only?
+            if not neariso:
+
+              # update the index for the cube
+              # get the unique elements that are being added to the data
+              uniqueels = np.unique ( databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ] )
+              for el in uniqueels:
+                index_dict[el].add(key) 
+
+              # remove 0 no reason to index that
+              if 0 in index_dict:
+                del(index_dict[0])
 
       # update all indexes
-      self.annoIdx.updateIndexDense(ch, index_dict, timestamp, resolution )
-      # commit cubes.  not commit controlled with metadata
+
+      if not neariso:
+        self.annoIdx.updateIndexDense(ch, index_dict, timestamp, resolution )
 
     except:
       self.kvio.rollback()
       raise
     
+    # commit cubes.  not commit controlled with metadata
     self.kvio.commit()
 
 
