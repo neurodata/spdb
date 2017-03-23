@@ -55,11 +55,9 @@ class Cube(object):
     xoffset = index[0]*other.xdim
     yoffset = index[1]*other.ydim
     zoffset = index[2]*other.zdim
+    
+    self.data [ zoffset:zoffset+other.zdim, yoffset:yoffset+other.ydim, xoffset:xoffset+other.xdim] = other.data [:,:,:]
 
-    self.data [ zoffset:zoffset+other.zdim,\
-                yoffset:yoffset+other.ydim,\
-                xoffset:xoffset+other.xdim]\
-            = other.data [:,:,:]
 
   def addData_new ( self, other, index ):
     """Add data to a larger cube from a smaller cube"""
@@ -167,33 +165,33 @@ class Cube(object):
 
   # factory method for cube
   @staticmethod
-  def CubeFactory(cubedim, channel_type, datatype, timerange=[0,1]):
+  def CubeFactory(cubedim, channel_type, datatype, time_range=[0,1]):
     
     if channel_type in ANNOTATION_CHANNELS and datatype in DTYPE_uint32:
       from anncube32 import AnnotateCube32
-      return AnnotateCube32(cubedim)
+      return AnnotateCube32(cubedim, time_range=time_range)
     elif channel_type in TIMESERIES_CHANNELS:
       if datatype in DTYPE_uint8:
         from timecube8 import TimeCube8
-        return TimeCube8(cubedim, timerange)
+        return TimeCube8(cubedim, time_range=time_range)
       elif datatype in DTYPE_uint16:
         from timecube16 import TimeCube16 
-        return TimeCube16(cubedim, timerange)
+        return TimeCube16(cubedim, time_range=time_range)
       elif datatype in DTYPE_uint32:
         from timecube32 import TimeCube32 
-        return TimeCube32(cubedim, timerange)
+        return TimeCube32(cubedim, time_range=time_range)
       elif datatype in DTYPE_int8:
         from timecubeI8 import TimeCubeI8
-        return TimeCubeI8(cubedim, timerange)
+        return TimeCubeI8(cubedim, time_range=time_range)
       elif datatype in DTYPE_int16:
         from timecubeI16 import TimeCubeI16 
-        return TimeCubeI16(cubedim, timerange)
+        return TimeCubeI16(cubedim, time_range=time_range)
       elif datatype in DTYPE_int32:
         from timecubeI32 import TimeCubeI32 
-        return TimeCubeI32(cubedim, timerange)
+        return TimeCubeI32(cubedim, time_range=time_range)
       elif datatype in DTYPE_float32:
         from timecubefloat32 import TimeCubeFloat32
-        return TimeCubeFloat32(cubedim, timerange)
+        return TimeCubeFloat32(cubedim, time_range=time_range)
     else:
       logger.error("Could not find a cube type for this channel.  Bad channel type?")
       raise SpatialDBError("Could not find a cube type for this channel.  Bad channel type?")

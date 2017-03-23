@@ -41,15 +41,7 @@ class AnnotateCube32(TimeCube):
     super(AnnotateCube32, self).zeros()
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint32)
 
-  # Add annotations
-  #
-  #  We are mostly going to assume that annotations are non-overlapping.  When they are,
-  #  we are going to be less than perfectly efficient.
-  #  
-  #  Returns a list of exceptions  
-  #
-  #  Exceptions are uint8 to keep them small.  Max cube size is 256^3.
-  #
+  # Add annotations. We are mostly going to assume that annotations are non-overlapping.  When they are, we are going to be less than perfectly efficient. Returns a list of exceptions. Exceptions are uint8 to keep them small.  Max cube size is 256^3.
   def annotate ( self, annid, timestamp, offset, locations, conflictopt ):
     """Add annotation by a list of locations"""
 

@@ -29,7 +29,7 @@ from spdb.ndkvio.kvio import KVIO
 import annindex
 from spdb.ndkvindex.kvindex import KVIndex
 from ndlib.ndctypelib import *
-from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
+from ndlib.ndtype import *
 from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -88,7 +88,7 @@ class SpatialDB:
     # get the size of the image and cube
     cubedim = self.datasetcfg.cubedim[resolution]
     # KL TODO add indexing here
-    cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, [0,1])
+    cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, time_range=[0,1])
   
     # get the block from the database
     cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
@@ -362,7 +362,6 @@ class SpatialDB:
             else:
               logger.error ( "Unsupported conflict option %s" % conflictopt )
               raise SpatialDBError ( "Unsupported conflict option %s" % conflictopt )
-
             self.putCube (ch, timestamp, key, resolution, cube, update=update, neariso=neariso )
 
             # RBTODO do we need to buiild neariso indexes or are they visual only?
@@ -522,7 +521,7 @@ class SpatialDB:
       effresolution = ch.resolution
 
     # if cutout is above resolution, get a large cube and scaledown
-    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED]:  
+    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED, UNDER_PROPAGATION]:  
       effcorner, effdim = self._zoomoutCutout ( ch, corner, dim, resolution )
       effresolution = ch.resolution
     # this is the default path when not scaling up the resolution
@@ -541,8 +540,8 @@ class SpatialDB:
     ynumcubes = (effcorner[1]+effdim[1]+ycubedim-1)/ycubedim - ystart
     xnumcubes = (effcorner[0]+effdim[0]+xcubedim-1)/xcubedim - xstart
     
-    incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, timerange=timerange )
-    outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, timerange=timerange)
+    incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, time_range=timerange )
+    outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, time_range=timerange)
                                         
     # Build a list of indexes to access
     listofidxs = []
@@ -602,7 +601,7 @@ class SpatialDB:
       outcube.trim ( corner[0]%(xcubedim*(2**(ch.resolution-resolution)))+xpixeloffset,dim[0], corner[1]%(ycubedim*(2**(ch.resolution-resolution)))+ypixeloffset,dim[1], corner[2]%zcubedim,dim[2] )
 
     # if we fetch a larger cube, downscale it and correct
-    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED]:
+    elif ch.channel_type in ANNOTATION_CHANNELS and ch.resolution < resolution and ch.propagate not in [PROPAGATED, UNDER_PROPAGATION]:
 
       outcube.downScale (resolution - ch.resolution)
 

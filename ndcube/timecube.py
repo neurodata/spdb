@@ -38,8 +38,7 @@ class TimeCube(Cube):
     yoffset = index[1]*other.ydim     
     zoffset = index[2]*other.zdim
     
-    self.data [ time-self.time_range[0], zoffset:zoffset+other.zdim, yoffset:yoffset+other.ydim, xoffset:xoffset+other.xdim]\
-        = other.data [:,:,:]
+    self.data [ time-self.time_range[0], zoffset:zoffset+other.zdim, yoffset:yoffset+other.ydim, xoffset:xoffset+other.xdim] = other.data [:,:,:]
   
   # @override(Cube)
   def trim(self, xoffset, xsize, yoffset, ysize, zoffset, zsize):
