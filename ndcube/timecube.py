@@ -14,7 +14,7 @@
 
 import numpy as np
 from cube import Cube
-from ndlib.ndctypelib import  overwriteDense_ctype
+from ndlib.ndctypelib import *
 
 import logging
 logger = logging.getLogger("neurodata")
@@ -37,7 +37,7 @@ class TimeCube(Cube):
     xoffset = index[0]*other.xdim
     yoffset = index[1]*other.ydim     
     zoffset = index[2]*other.zdim
-    
+       
     self.data [ time-self.time_range[0], zoffset:zoffset+other.zdim, yoffset:yoffset+other.ydim, xoffset:xoffset+other.xdim] = other.data [:,:,:]
   
   # @override(Cube)
@@ -51,7 +51,7 @@ class TimeCube(Cube):
     if (self.data.dtype != write_data.dtype ):
       logger.error("Conflicting data types for overwrite")
       raise SpatialDBError ("Conflicting data types for overwrite")
-
+    
     self.data[timestamp,:] = overwriteDense_ctype(self.data[timestamp,:], write_data)
 
 

@@ -128,8 +128,10 @@ class MySQLKVIO(KVIO):
     index_list = list(itertools.chain.from_iterable(itertools.product(listofidxs, listoftimestamps)))
 
     if neariso:
+      print "Fetching data from isotropic tables"
       sql = "SELECT zindex, timestamp, cube FROM {} WHERE (zindex, timestamp) in (%s)".format( ch.getNearIsoTable(resolution) ) 
     else:
+      print "Fetching data from normal tables"
       sql = "SELECT zindex, timestamp, cube FROM {} WHERE (zindex, timestamp) in (%s)".format( ch.getTable(resolution) ) 
 
     # creats a %s for each list element
@@ -170,21 +172,25 @@ class MySQLKVIO(KVIO):
       cursor = self.conn.cursor()
     else:
       cursor = self.txncursor
-
+    
     try:
       # we created a cube from zeros
       if not update:
         if not neariso:
+          print "Inserting data from normal tables"
           sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
         else:
+          print "Inserting data from isotropic tables"
           sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getNearIsoTable(resolution))
         # this uses a cursor defined in the caller (locking context): not beautiful, but needed for locking
         cursor.execute ( sql, (zidx, timestamp, cubestr) ) 
       
       else:
         if not neariso:
+          print "Updating data from normal tables"
           sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
         else:
+          print "Updating data from isotropic tables"
           sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getNearIsoTable(resolution), zidx, timestamp)
         cursor.execute( sql, (cubestr,) )
       

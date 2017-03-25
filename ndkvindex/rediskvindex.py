@@ -51,9 +51,9 @@ class RedisKVIndex(KVIndex):
   
   def cleanIndexList(self, index_list, neariso=False):
     if neariso:
-      return [ index.split('&')[-2] for index in index_list]
+      return [index.split('&')[-3] for index in index_list]
     else:
-      return [ index.split('&')[-1] for index in index_list]
+      return [ index.split('&')[-2] for index in index_list]
   
   def getCubeIndex(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Retrieve the indexes of inserted cubes"""

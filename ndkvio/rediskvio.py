@@ -107,7 +107,7 @@ class RedisKVIO(KVIO):
     """Store a single cube into the database"""
     
     # generating the key
-    key_list = self.generateKeys(ch, [timestamp], [zidx], resolution, neariso=False)
+    key_list = self.generateKeys(ch, [timestamp], [zidx], resolution, neariso=neariso)
     
     try:
       self.client.mset( dict(zip(key_list, [cubestr])) )
@@ -118,6 +118,8 @@ class RedisKVIO(KVIO):
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Store multiple cubes into the database"""
     
+    import blosc
+    print "inserting cube of shape: {}, res: {}".format(blosc.unpack_array(listofcubes[0]).shape, resolution)
     # generating the list of keys
     key_list = self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso)
     
