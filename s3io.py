@@ -60,9 +60,10 @@ class S3IO:
     [x,y,z] = map(div, corner, super_cubedim)
     return XYZMorton([x,y,z])
 
-  def breakCubes(self, super_zidx, resolution, super_cube):
+  def breakCubes(self, timestamp, super_zidx, resolution, super_cube):
     """Breaking the supercube into cubes"""
     
+    print "supercube:", super_cube.shape
     # Empty lists for zindx and cube data
     zidx_list = []
     cube_list = []
@@ -85,11 +86,14 @@ class S3IO:
           index = map(mul, cubedim, [x,y,z])
           end = map(add, index, cubedim)
 
-          cube_data = super_cube[index[2]:end[2], index[1]:end[1], index[0]:end[0]]
+          cube_data = super_cube[:,index[2]:end[2], index[1]:end[1], index[0]:end[0]]
           zidx_list.append(zidx)
+          # print "mini cube:", cube_data.shape
           cube_list.append(blosc.pack_array(cube_data))
     
-    return zidx_list, cube_list
+    return zidx_list, [timestamp]*len(zidx_list), cube_list
+    # for zidx, timestamp, cube_str in zip(zidx_list, [timestamp]*len(zidx_list), cube_list):
+      # yield(zidx, timestamp, cube_str)
   
   def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
@@ -97,10 +101,13 @@ class S3IO:
     super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
       super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, timestamp, neariso=neariso)
-      return self.breakCubes(zidx, resolution, blosc.unpack_array(super_cube))
+      return self.breakCubes(timestamp, zidx, resolution, blosc.unpack_array(super_cube))
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
       raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
+    except botocore.exceptions.ClientError as e:
+      if e.response['Error']['Code'] == 'NoSuckKey':
+        return None
     
 
   def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
@@ -114,7 +121,9 @@ class S3IO:
       for super_zidx in super_listofidxs:
         try:
           super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, time_index, neariso=neariso)
-          yield ( self.breakCubes(super_zidx, resolution, blosc.unpack_array(super_cube)) )
+          yield ( self.breakCubes(time_index, super_zidx, resolution, blosc.unpack_array(super_cube)) )
+          # for item in self.breakCubes(time_index, super_zidx, resolution, blosc.unpack_array(super_cube)):
+            # yield(item)
         except botocore.exceptions.DataNotFoundError as e:
           logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
           raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
@@ -124,14 +133,19 @@ class S3IO:
           if e.response['Error']['Code'] == 'NoSuchBucket':
             pass
  
-  def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
+  def putCubes ( self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Store multiple cubes into the database"""
     # KL TODO This should be replaced by Blaze
+    # KL TODO Remember to convert listofcubes into listofsupercubes, listofidxs into listofsuperidxs
+    # basically an exact opposite of breakCubes() like combineCubes()
     return NotImplemented
   
-  def putCube ( self, ch, timestamp, super_zidx, resolution, cubestr, update=False, neariso=False):
+  def putCube ( self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False):
     """Store a cube from the annotation database"""
     
+    # super_zidx = self.generateSuperZindex(zidx, resolution)
+    super_zidx = zidx
+    print "insert cube shape:", blosc.unpack_array(cubestr).shape
     [x, y, z] = MortonXYZ(super_zidx)
     self.cuboidindex_db.putItem(ch.channel_name, resolution, x, y, z, timestamp, neariso=neariso)
     return self.cuboid_bucket.putObject(ch.channel_name, resolution, super_zidx, timestamp, cubestr, neariso=neariso)

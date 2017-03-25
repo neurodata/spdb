@@ -82,16 +82,37 @@ class SpatialDB:
 
 
   @ReaderLock
-  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
     """Load a cube from the database"""
 
     # get the size of the image and cube
-    cubedim = self.datasetcfg.cubedim[resolution]
-    # KL TODO add indexing here
-    cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, time_range=[0,1])
-  
-    # get the block from the database
-    cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
+    if direct:
+      cubedim = self.datasetcfg.get_supercubedim(resolution)
+    else:
+      cubedim = self.datasetcfg.get_cubedim(resolution)
+    
+    cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, time_range=[timestamp, timestamp+1])
+    
+    if direct:
+      # get the block directly from s3
+      cube_str = self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
+    else:
+      # if project is in S3 then check if id exits in cache
+      if self.proj.s3backend == S3_TRUE:
+        # list of id to fetch which do not exist in cache
+        id_to_fetch = self.kvindex.getCubeIndex(ch, [timestamp], [zidx], resolution, neariso=neariso)
+        # check if there are any ids to fetch
+        if id_to_fetch:
+          # fetch the supercuboid from s3
+          super_cuboid = self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
+          # check if supercuboid exists
+          if super_cuboid:
+            # iterate over supercuboid as it is broken into smaller cuboids
+            for listofidxs, listoftimestamps, listofcubes in super_cuboid:
+              self.putCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
+      
+      # get the block from the kvengine
+      cube_str = self.kvio.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
 
     # handle the cube format here and decompress the cube
     cube.deserialize(cube_str)
@@ -100,36 +121,48 @@ class SpatialDB:
 
 
   @ReaderLock
-  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
+  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     """Return a list of cubes"""
+    
+    if direct:
+      return self.s3io.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+    else:
+      if self.proj.s3backend == S3_TRUE:
+        ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+        # checking if the index exists inside the database or not
+        if ids_to_fetch:
+          # logger.debug("Cache Miss: {}".format(listofidxs))
+          super_cuboids = self.s3io.getCubes(ch, listoftimestamps, ids_to_fetch, resolution, neariso=neariso)
+          # iterating over super_cuboids
+          for superlistofidxs, superlistoftimestamps, superlistofcubes in super_cuboids:
+            # call putCubes and update index in the table before returning data
+            self.putCubes(ch, superlistoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
 
-    if self.proj.s3backend == S3_TRUE:
-      ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
-      # checking if the index exists inside the database or not
-      if ids_to_fetch:
-        # logger.debug("Cache Miss: {}".format(listofidxs))
-        super_cuboids = self.s3io.getCubes(ch, listoftimestamps, ids_to_fetch, resolution, neariso=neariso)
-        # iterating over super_cuboids
-        for superlistofidxs, superlistofcubes in super_cuboids:
-          # call putCubes and update index in the table before returning data
-          self.putCubes(ch, listoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
-
-    return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+      return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
    
 
-  def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
+  def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False, direct=False):
     """Insert a list of cubes"""
     
-    if self.proj.s3backend == S3_TRUE:
-      self.kvindex.putCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
-    return self.kvio.putCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
+    if direct:
+      return self.s3io.putCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
+    else:
+      if self.proj.s3backend == S3_TRUE:
+        self.kvindex.putCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+        return self.kvio.putCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
 
   
-  def putCube(self, ch, timestamp, zidx, resolution, cube, update=False, neariso=False):
+  def putCube(self, ch, timestamp, zidx, resolution, cube, update=False, neariso=False, direct=False):
     """Insert a cube in the database"""
     
-    self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso)
-    self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros(), neariso=neariso)
+    # KL TODO move the kvindex logic into rediskvio since we only cache in Redis now
+    if direct:
+      # post to s3 and dynamo directly if direct flag is turned on
+      self.s3io.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros(), neariso=neariso)
+    else:
+      # post to kvio and update kvindex if direct flag is off
+      self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso=neariso)
+      self.kvio.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros(), neariso=neariso)
       
 
   def getExceptions(self, ch, zidx, timestamp, resolution, annoid):
@@ -510,10 +543,13 @@ class SpatialDB:
     return effcorner, effdim 
 
 
-  def cutout(self, ch, corner, dim, resolution, timerange, annoids=None, neariso=False):
+  def cutout(self, ch, corner, dim, resolution, timerange, annoids=None, neariso=False, direct=False):
     """Extract a cube of arbitrary size. Need not be aligned."""
-
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution) 
+    
+    if direct:
+      [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_supercubedim(resolution) 
+    else:
+      [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution) 
     # if cutout is below resolution, get a smaller cube and scaleup
     if ch.channel_type in ANNOTATION_CHANNELS and ch.resolution > resolution:
       # find the effective dimensions of the cutout (where the data is)
@@ -562,9 +598,9 @@ class SpatialDB:
 
     try:
       if neariso and self.datasetcfg.nearisoscaledown[resolution] > 1:
-        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=True)
+        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=True, direct=direct)
       else:
-        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=False)
+        cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=False, direct=direct)
       
       # use the batch generator interface
       for idx, timestamp, datastring in cuboids:
@@ -1035,7 +1071,7 @@ class SpatialDB:
    # self.kvio.commit()
 
 
-  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,1]):
+  def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,1], neariso=False, direct=False):
     """
     Write a 4D volume to the key-value store.
 
@@ -1056,7 +1092,10 @@ class SpatialDB:
     dim = cuboiddata.shape[::-1][:-1]
 
     # get the size of the image and cube
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.cubedim[resolution]
+    if direct:
+      [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_supercubedim(resolution)
+    else:
+      [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution)
 
     # round to the nearest larger cube in all dimensions
     start = [xstart, ystart, zstart] = map(div, corner, cubedim)
@@ -1071,7 +1110,7 @@ class SpatialDB:
     databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
     
     self.kvio.startTxn()
-
+    
     try:
       for z in range(znumcubes):
         for y in range(ynumcubes):
@@ -1081,14 +1120,14 @@ class SpatialDB:
               zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
 
               # KL TODO make a blind version of the write here which does not get/put
-              cube = self.getCube(ch, timestamp, zidx, resolution, update=True)
+              cube = self.getCube(ch, timestamp, zidx, resolution, update=True, neariso=neariso, direct=direct)
 
               # KLTODO in test_probability.py overwrite does not work for float32.
               # overwrite the cube -- one timestamp in cube so write to time 0
               cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
 
               # update in the database
-              self.putCube(ch, timestamp, zidx, resolution, cube)
+              self.putCube(ch, timestamp, zidx, resolution, cube, neariso=neariso, direct=direct)
 
     except:
       self.kvio.rollback()
