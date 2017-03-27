@@ -86,14 +86,14 @@ class SpatialDB:
     """Load a cube from the database"""
 
     # get the size of the image and cube
-    if direct:
+    if direct and self.KVENGINE == REDIS:
       cubedim = self.datasetcfg.get_supercubedim(resolution)
     else:
       cubedim = self.datasetcfg.get_cubedim(resolution)
     
     cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, time_range=[timestamp, timestamp+1])
     
-    if direct:
+    if direct and self.KVENGINE == REDIS:
       # get the block directly from s3
       cube_str = self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
     else:
@@ -124,7 +124,7 @@ class SpatialDB:
   def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     """Return a list of cubes"""
     
-    if direct:
+    if direct and self.KVENGINE == REDIS:
       return self.s3io.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
     else:
       if self.proj.s3backend == S3_TRUE:
@@ -144,7 +144,7 @@ class SpatialDB:
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False, direct=False):
     """Insert a list of cubes"""
     
-    if direct:
+    if direct and self.KVENGINE == REDIS:
       return self.s3io.putCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
     else:
       if self.proj.s3backend == S3_TRUE:
@@ -156,7 +156,7 @@ class SpatialDB:
     """Insert a cube in the database"""
     
     # KL TODO move the kvindex logic into rediskvio since we only cache in Redis now
-    if direct:
+    if direct and self.KVENGINE == REDIS:
       # post to s3 and dynamo directly if direct flag is turned on
       self.s3io.putCube(ch, timestamp, zidx, resolution, cube.serialize(), not cube.fromZeros(), neariso=neariso)
     else:
@@ -546,7 +546,7 @@ class SpatialDB:
   def cutout(self, ch, corner, dim, resolution, timerange, annoids=None, neariso=False, direct=False):
     """Extract a cube of arbitrary size. Need not be aligned."""
     
-    if direct:
+    if direct and self.KVENGINE == REDIS:
       [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_supercubedim(resolution) 
     else:
       [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution) 
@@ -1092,7 +1092,7 @@ class SpatialDB:
     dim = cuboiddata.shape[::-1][:-1]
 
     # get the size of the image and cube
-    if direct:
+    if direct and self.KVENGINE == REDIS:
       [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_supercubedim(resolution)
     else:
       [xcubedim, ycubedim, zcubedim] = cubedim = self.datasetcfg.get_cubedim(resolution)
