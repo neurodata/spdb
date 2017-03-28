@@ -145,7 +145,7 @@ class S3IO:
     
     # super_zidx = self.generateSuperZindex(zidx, resolution)
     super_zidx = zidx
-    print "insert cube shape:", blosc.unpack_array(cubestr).shape
+    print "insert S3 cube shape:", blosc.unpack_array(cubestr).shape
     [x, y, z] = MortonXYZ(super_zidx)
     self.cuboidindex_db.putItem(ch.channel_name, resolution, x, y, z, timestamp, neariso=neariso)
     return self.cuboid_bucket.putObject(ch.channel_name, resolution, super_zidx, timestamp, cubestr, neariso=neariso)
