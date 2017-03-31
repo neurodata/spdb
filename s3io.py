@@ -103,7 +103,7 @@ class S3IO:
       super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, timestamp, neariso=neariso)
       super_cube = blosc.unpack_array(super_cube)
       if len(super_cube.shape) == 3:
-        super_cube.reshape((1,) + super_cube.shape)
+        super_cube = super_cube.reshape((1,) + super_cube.shape)
       return self.breakCubes(timestamp, zidx, resolution, super_cube)
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
@@ -126,7 +126,7 @@ class S3IO:
           super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, time_index, neariso=neariso)
           super_cube = blosc.unpack_array(super_cube)
           if len(super_cube.shape) == 3:
-            super_cube.reshape((1,) + super_cube.shape)
+            super_cube = super_cube.reshape((1,) + super_cube.shape)
           yield ( self.breakCubes(time_index, super_zidx, resolution, super_cube) )
           # for item in self.breakCubes(time_index, super_zidx, resolution, blosc.unpack_array(super_cube)):
             # yield(item)
