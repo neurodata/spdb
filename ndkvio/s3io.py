@@ -95,16 +95,22 @@ class S3IO:
     # for zidx, timestamp, cube_str in zip(zidx_list, [timestamp]*len(zidx_list), cube_list):
       # yield(zidx, timestamp, cube_str)
   
-  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
     
-    super_zidx = self.generateSuperZindex(zidx, resolution)
+    if direct:
+      super_zidx = zidx
+    else:
+      super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
       super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, timestamp, neariso=neariso)
       super_cube = blosc.unpack_array(super_cube)
       if len(super_cube.shape) == 3:
         super_cube = super_cube.reshape((1,) + super_cube.shape)
-      return self.breakCubes(timestamp, zidx, resolution, super_cube)
+      if direct:
+        return zidx, timestamp, blosc.pack_array(super_cube)
+      else:
+        return self.breakCubes(timestamp, zidx, resolution, super_cube)
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
       raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
@@ -113,12 +119,15 @@ class S3IO:
         return None
     
 
-  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
+  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     """Retrieve multiple cubes from the database"""
     
-    super_listofidxs = Set([])
-    for zidx in listofidxs:
-      super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
+    if direct:
+      super_listofidxs = Set(listofidxs)
+    else:
+      super_listofidxs = Set([])
+      for zidx in listofidxs:
+        super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
     
     for time_index in listoftimestamps:
       for super_zidx in super_listofidxs:
@@ -127,7 +136,10 @@ class S3IO:
           super_cube = blosc.unpack_array(super_cube)
           if len(super_cube.shape) == 3:
             super_cube = super_cube.reshape((1,) + super_cube.shape)
-          yield ( self.breakCubes(time_index, super_zidx, resolution, super_cube) )
+          if direct:
+            yield ( super_zidx, time_index, blosc.pack_array(super_cube))
+          else:
+            yield ( self.breakCubes(time_index, super_zidx, resolution, super_cube) )
           # for item in self.breakCubes(time_index, super_zidx, resolution, blosc.unpack_array(super_cube)):
             # yield(item)
         except botocore.exceptions.DataNotFoundError as e:

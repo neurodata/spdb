@@ -66,17 +66,17 @@ class RedisKVIO(KVIO):
 
     return key_list
 
-  def getDirectCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
+  def getDirectCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
     """Retrieve a single cube from s3"""
     
-    return self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
+    return self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso, direct=direct)
 
   @ReaderLock
   def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
     """Retrieve a single cube from the database"""
     
     if direct:
-      return self.getDirectCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
+      return self.getDirectCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso, direct=direct)
     else:
       return self.getCacheCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
 
@@ -108,14 +108,15 @@ class RedisKVIO(KVIO):
   @ReaderLock
   def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     if direct:
-      return self.getDirectCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+      return self.getDirectCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso, direct=direct)
     else:
       return self.getCacheCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
   
 
-  def getDirectCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
+  def getDirectCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     """Retrieve cubes directly from s3"""
-    return self.s3io.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+    # super_listofidxs = [self.s3io.generateSuperZindex(zidx, resolution) for zidx in listofidxs]
+    return self.s3io.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso, direct=direct)
     
   
   def getCacheCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
@@ -125,9 +126,10 @@ class RedisKVIO(KVIO):
       # checking if the index exists inside the database or not
       if ids_to_fetch:
         super_cuboids = self.getDirectCubes(ch, listoftimestamps, ids_to_fetch, resolution, neariso=neariso)
-        for superlistofidxs, superlistoftimestamps, superlistofcubes in super_cuboids:
-          # call putCubes and update index in the table before returning data
-          self.putCubes(ch, superlistoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
+        if super_cuboids:
+          for superlistofidxs, superlistoftimestamps, superlistofcubes in super_cuboids:
+            # call putCubes and update index in the table before returning data
+            self.putCubes(ch, superlistoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
       
       rows = self.client.mget( self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso) )
       for (timestamp, zidx), row in zip(itertools.product(listoftimestamps, listofidxs), rows):

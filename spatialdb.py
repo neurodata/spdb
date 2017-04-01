@@ -78,7 +78,7 @@ class SpatialDB:
   
   def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     """Return a list of cubes"""
-    return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
+    return self.kvio.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso, direct=direct)
    
 
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False, direct=False):
@@ -530,7 +530,7 @@ class SpatialDB:
       
       # use the batch generator interface
       for idx, timestamp, datastring in cuboids:
-
+        
         # add the query result cube to the bigger cube
         curxyz = MortonXYZ(int(idx))
         offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
