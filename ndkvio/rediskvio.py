@@ -43,40 +43,74 @@ class RedisKVIO(KVIO):
   def close(self):
     self.kvindex.close()
 
+  def generateSuperZindex(self, zidx, resolution):
+    """Generate super zindex from a given zindex"""
+    
+    [ximagesz, yimagesz, zimagesz] = self.db.proj.datasetcfg.dataset_dim(resolution)
+    [xcubedim, ycubedim, zcubedim] = cubedim = self.db.proj.datasetcfg.get_cubedim(resolution)
+    [xoffset, yoffset, zoffset] = self.db.proj.datasetcfg.get_offset(resolution)
+    [xsupercubedim, ysupercubedim, zsupercubedim] = super_cubedim = self.db.proj.datasetcfg.get_supercubedim(resolution)
+    
+    # super_cubedim = map(mul, cubedim, SUPERCUBESIZE)
+    [x, y, z] = MortonXYZ(zidx)
+    corner = map(mul, MortonXYZ(zidx), cubedim)
+    [x,y,z] = map(div, corner, super_cubedim)
+    return XYZMorton([x,y,z])
+
+  def breakCubes(self, timestamp, super_zidx, resolution, super_cube):
+    """Breaking the supercube into cubes"""
+    
+    print "supercube:", super_cube.shape
+    # Empty lists for zindx and cube data
+    zidx_list = []
+    cube_list = []
+    
+    # SuperCube Size
+    [xnumcubes, ynumcubes, znumcubes] = self.db.datasetcfg.supercube_size
+    
+    # Cube dimensions
+    cubedim = self.db.datasetcfg.get_cubedim(resolution)
+    [x,y,z] = MortonXYZ(super_zidx)
+    # start = map(mul, cubedim, [x,y,z])
+    start = map(mul, [x,y,z], self.db.datasetcfg.supercube_size)
+    
+    for z in range(znumcubes):
+      for y in range(ynumcubes):
+        for x in range(xnumcubes):
+          zidx = XYZMorton(map(add, start, [x,y,z]))
+
+          # Parameters in the cube slab
+          index = map(mul, cubedim, [x,y,z])
+          end = map(add, index, cubedim)
+
+          cube_data = super_cube[:,index[2]:end[2], index[1]:end[1], index[0]:end[0]]
+          zidx_list.append(zidx)
+          # print "mini cube:", cube_data.shape
+          cube_list.append(blosc.pack_array(cube_data))
+    
+    return zidx_list, [timestamp]*len(zidx_list), cube_list
+    # for zidx, timestamp, cube_str in zip(zidx_list, [timestamp]*len(zidx_list), cube_list):
+      # yield(zidx, timestamp, cube_str)
+  
   def generateKeys(self, ch, timestamp_list, zidx_list, resolution, neariso=False):
     """Generate a key for Redis"""
     
     key_list = []
-    for timestamp in timestamp_list:
-      for zidx in zidx_list:
-        if neariso:
-          key_list.append( '{}&{}&{}&{}&{}&neariso'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx, timestamp) )
-        else:
-          key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx, timestamp) )
+    for timestamp, zidx in itertools.produc(timestamp_list, zidx_list):
+      if neariso:
+        key_list.append( '{}&{}&{}&{}&{}&neariso'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx, timestamp) )
+      else:
+        key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx, timestamp) )
     
-    # if isinstance(timestamp, types.ListType):
-      # for tvalue in timestamp:
-        # key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, tvalue, zidx_list[0]) )
-    # else:
-      # for zidx in zidx_list:
-        # if timestamp == None:
-          # key_list.append( '{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, zidx) )
-        # else:
-          # key_list.append( '{}&{}&{}&{}&{}'.format(self.db.proj.project_name, ch.channel_name, resolution, timestamp, zidx) )
-
     return key_list
-
-  def getDirectCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
-    """Retrieve a single cube from s3"""
     
-    return self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso, direct=direct)
 
   @ReaderLock
   def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
     """Retrieve a single cube from the database"""
     
     if direct:
-      return self.getDirectCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso, direct=direct)
+      return self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
     else:
       return self.getCacheCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
 
@@ -88,10 +122,13 @@ class RedisKVIO(KVIO):
     id_to_fetch = self.kvindex.getCubeIndex(ch, [timestamp], [zidx], resolution, neariso=neariso)
     # check if there are any ids to fetch
     if id_to_fetch:
+      super_listofidxs = Set([])
+      for zidx in ids_to_fetch:
+        super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
       # fetch the supercuboid from s3
-      cuboid = self.getDirectCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
-      if cuboid:
-        for listofidxs, listoftimestamps, listofcubes in cuboid:
+      super_cuboid = self.s3io.getCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
+      if super_cuboid:
+        for listofidxs, listoftimestamps, listofcubes in self.breakCubes(timestamp, zidx, resolution, super_cuboid):
           self.putCacheCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
 
     try:
@@ -108,17 +145,11 @@ class RedisKVIO(KVIO):
   @ReaderLock
   def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     if direct:
-      return self.getDirectCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso, direct=direct)
+      return self.s3io.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
     else:
       return self.getCacheCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
   
 
-  def getDirectCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
-    """Retrieve cubes directly from s3"""
-    # super_listofidxs = [self.s3io.generateSuperZindex(zidx, resolution) for zidx in listofidxs]
-    return self.s3io.getCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso, direct=direct)
-    
-  
   def getCacheCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     try:

@@ -46,71 +46,19 @@ class S3IO:
     pass
    
   
-  def generateSuperZindex(self, zidx, resolution):
-    """Generate super zindex from a given zindex"""
+  def supercube_compatibility(self, super_cube):
     
-    [ximagesz, yimagesz, zimagesz] = self.db.proj.datasetcfg.dataset_dim(resolution)
-    [xcubedim, ycubedim, zcubedim] = cubedim = self.db.proj.datasetcfg.get_cubedim(resolution)
-    [xoffset, yoffset, zoffset] = self.db.proj.datasetcfg.get_offset(resolution)
-    [xsupercubedim, ysupercubedim, zsupercubedim] = super_cubedim = self.db.proj.datasetcfg.get_supercubedim(resolution)
-    
-    # super_cubedim = map(mul, cubedim, SUPERCUBESIZE)
-    [x, y, z] = MortonXYZ(zidx)
-    corner = map(mul, MortonXYZ(zidx), cubedim)
-    [x,y,z] = map(div, corner, super_cubedim)
-    return XYZMorton([x,y,z])
-
-  def breakCubes(self, timestamp, super_zidx, resolution, super_cube):
-    """Breaking the supercube into cubes"""
-    
-    print "supercube:", super_cube.shape
-    # Empty lists for zindx and cube data
-    zidx_list = []
-    cube_list = []
-    
-    # SuperCube Size
-    [xnumcubes, ynumcubes, znumcubes] = self.db.datasetcfg.supercube_size
-    
-    # Cube dimensions
-    cubedim = self.db.datasetcfg.get_cubedim(resolution)
-    [x,y,z] = MortonXYZ(super_zidx)
-    # start = map(mul, cubedim, [x,y,z])
-    start = map(mul, [x,y,z], self.db.datasetcfg.supercube_size)
-    
-    for z in range(znumcubes):
-      for y in range(ynumcubes):
-        for x in range(xnumcubes):
-          zidx = XYZMorton(map(add, start, [x,y,z]))
-
-          # Parameters in the cube slab
-          index = map(mul, cubedim, [x,y,z])
-          end = map(add, index, cubedim)
-
-          cube_data = super_cube[:,index[2]:end[2], index[1]:end[1], index[0]:end[0]]
-          zidx_list.append(zidx)
-          # print "mini cube:", cube_data.shape
-          cube_list.append(blosc.pack_array(cube_data))
-    
-    return zidx_list, [timestamp]*len(zidx_list), cube_list
-    # for zidx, timestamp, cube_str in zip(zidx_list, [timestamp]*len(zidx_list), cube_list):
-      # yield(zidx, timestamp, cube_str)
+    super_cube = blosc.unpack_array(super_cube)
+    if len(super_cube.shape) == 3:
+      return blosc.pack_array(super_cube.reshape((1,) + super_cube.shape))
   
-  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
+  def getCube(self, ch, timestamp, super_zidx, resolution, update=False, neariso=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
     
-    if direct:
-      super_zidx = zidx
-    else:
-      super_zidx = self.generateSuperZindex(zidx, resolution)
     try:
       super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, timestamp, neariso=neariso)
-      super_cube = blosc.unpack_array(super_cube)
-      if len(super_cube.shape) == 3:
-        super_cube = super_cube.reshape((1,) + super_cube.shape)
-      if direct:
-        return zidx, timestamp, blosc.pack_array(super_cube)
-      else:
-        return self.breakCubes(timestamp, zidx, resolution, super_cube)
+      super_cube = self.supercube_compatibility(super_cube)
+      return zidx, timestamp, super_cube
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
       raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
