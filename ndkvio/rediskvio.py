@@ -72,7 +72,7 @@ class RedisKVIO(KVIO):
     """Breaking the supercuboids into cuboids"""
     
     super_cube = blosc.unpack_array(super_cube)
-    print "breaking supercube shape: {}".format(super_cube.shape)
+    # print "breaking supercube shape: {}".format(super_cube.shape)
     # Empty lists for zindx and cube data
     zidx_list = []
     cube_list = []
@@ -219,8 +219,8 @@ class RedisKVIO(KVIO):
   def putCacheCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Store multiple cubes in the cache"""
     
-    import blosc
-    print "inserting cube of shape: {}, res: {}".format(blosc.unpack_array(listofcubes[0]).shape, resolution)
+    # import blosc
+    # print "inserting cube of shape: {}, res: {}".format(blosc.unpack_array(listofcubes[0]).shape, resolution)
     # generating the list of keys
     key_list = self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso)
     
