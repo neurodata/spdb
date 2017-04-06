@@ -494,15 +494,12 @@ class SpatialDB:
       effresolution = resolution 
 
     # Round to the nearest larger cube in all dimensions
-    zstart = effcorner[2]/zcubedim
-    ystart = effcorner[1]/ycubedim
-    xstart = effcorner[0]/xcubedim
+    [xstart, ystart, zstart] = map(div, effcorner, cubedim)
 
     znumcubes = (effcorner[2]+effdim[2]+zcubedim-1)/zcubedim - zstart
     ynumcubes = (effcorner[1]+effdim[1]+ycubedim-1)/ycubedim - ystart
     xnumcubes = (effcorner[0]+effdim[0]+xcubedim-1)/xcubedim - xstart
     
-    incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, time_range=timerange )
     outcube = Cube.CubeFactory([xnumcubes*xcubedim, ynumcubes*ycubedim, znumcubes*zcubedim], ch.channel_type, ch.channel_datatype, time_range=timerange)
                                         
     # Build a list of indexes to access
@@ -536,6 +533,7 @@ class SpatialDB:
         offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
 
         # deserialize cube from blosc
+        incube = Cube.CubeFactory ( cubedim, ch.channel_type, ch.channel_datatype, time_range=[timestamp, timestamp+1])
         incube.deserialize(datastring)
         # incube.deserialize(datastring[:])
 
@@ -1035,7 +1033,6 @@ class SpatialDB:
     databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
     
     self.kvio.startTxn()
-    
     try:
       for z in range(znumcubes):
         for y in range(ynumcubes):
@@ -1043,7 +1040,6 @@ class SpatialDB:
             for timestamp in range(timerange[0], timerange[1], 1):
 
               zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
-
               # KL TODO make a blind version of the write here which does not get/put
               cube = self.getCube(ch, timestamp, zidx, resolution, update=True, neariso=neariso, direct=direct)
 

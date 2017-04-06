@@ -15,11 +15,8 @@
 import boto3
 import botocore
 import blosc
-import hashlib
-from sets import Set
-from operator import add, sub, mul, div, mod
-from django.conf import settings
-from ndlib.ndctypelib import XYZMorton, MortonXYZ
+import itertools
+from ndlib.ndctypelib import *
 from ndingest.nddynamo.cuboidindexdb import CuboidIndexDB
 from ndingest.ndbucket.cuboidbucket import CuboidBucket
 from spdb.spatialdberror import SpatialDBError
@@ -49,8 +46,11 @@ class S3IO:
   def supercube_compatibility(self, super_cube):
     
     super_cube = blosc.unpack_array(super_cube)
+    # print "Supercube compatibility {}".format(super_cube.shape)
     if len(super_cube.shape) == 3:
       return blosc.pack_array(super_cube.reshape((1,) + super_cube.shape))
+    else:
+      return blosc.pack_array(super_cube)
   
   def getCube(self, ch, timestamp, super_zidx, resolution, update=False, neariso=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
@@ -67,37 +67,24 @@ class S3IO:
         return None
     
 
-  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
+  def getCubes(self, ch, listoftimestamps, superlistofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the database"""
     
-    if direct:
-      super_listofidxs = Set(listofidxs)
-    else:
-      super_listofidxs = Set([])
-      for zidx in listofidxs:
-        super_listofidxs.add(self.generateSuperZindex(zidx, resolution))
-    
-    for time_index in listoftimestamps:
-      for super_zidx in super_listofidxs:
-        try:
-          super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, time_index, neariso=neariso)
-          super_cube = blosc.unpack_array(super_cube)
-          if len(super_cube.shape) == 3:
-            super_cube = super_cube.reshape((1,) + super_cube.shape)
-          if direct:
-            yield ( super_zidx, time_index, blosc.pack_array(super_cube))
-          else:
-            yield ( self.breakCubes(time_index, super_zidx, resolution, super_cube) )
-          # for item in self.breakCubes(time_index, super_zidx, resolution, blosc.unpack_array(super_cube)):
-            # yield(item)
-        except botocore.exceptions.DataNotFoundError as e:
-          logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
-          raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
-        except botocore.exceptions.ClientError as e:
-          if e.response['Error']['Code'] == 'NoSuckKey':
-            continue
-          if e.response['Error']['Code'] == 'NoSuchBucket':
-            pass
+    for (time_index, super_zidx) in itertools.product(listoftimestamps, superlistofidxs):
+      try:
+        super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, time_index, neariso=neariso)
+        super_cube = self.supercube_compatibility(super_cube)
+        yield ( super_zidx, time_index, super_cube)
+        # for item in self.breakCubes(time_index, super_zidx, resolution, blosc.unpack_array(super_cube)):
+          # yield(item)
+      except botocore.exceptions.DataNotFoundError as e:
+        logger.error("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+        raise SpatialDBError("Cannot find the s3 object for zindex {}. {}".format(super_zidx, e))
+      except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuckKey':
+          continue
+        if e.response['Error']['Code'] == 'NoSuchBucket':
+          pass
  
   def putCubes ( self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Store multiple cubes into the database"""
