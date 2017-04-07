@@ -71,5 +71,4 @@ class TimeCube(Cube):
     for time_index in range(self.data.shape[0]):
       for z_index in range(self.data.shape[1]):
         new_data[time_index, z_index, :, :] = np.asarray(self.frombuffer(self.data[time_index, z_index, :, :]).resize([new_data.shape[2], new_data.shape[3]]))
-    import pdb; pdb.set_trace()
     self.data = new_data

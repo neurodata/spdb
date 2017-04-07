@@ -439,18 +439,24 @@ class SpatialDB:
     self.shaveDense ( ch, entityid, timestamp, corner, resolution, annodata )
 
 
-  def _zoominCutout ( self, ch, corner, dim, resolution ):
+  def _zoominCutout (self, ch, corner, dim, resolution, neariso=False):
     """Scale to a smaller cutout that will be zoomed"""
 
     # scale the corner to lower resolution
-    effcorner = corner[0]/(2**(ch.resolution-resolution)), corner[1]/(2**(ch.resolution-resolution)), corner[2]
+    if neariso:
+      effcorner = corner[0]/(2**(ch.resolution-resolution)), corner[1]/(2**(ch.resolution-resolution)), corner[2]/self.datasetcfg.nearisoscaledown[resolution]
+    else:
+      effcorner = corner[0]/(2**(ch.resolution-resolution)), corner[1]/(2**(ch.resolution-resolution)), corner[2]
 
     # pixels offset within big range
     xpixeloffset = corner[0]%(2**(ch.resolution-resolution))
     ypixeloffset = corner[1]%(2**(ch.resolution-resolution))
 
     # get the new dimension, snap up to power of 2
-    outcorner = (corner[0]+dim[0],corner[1]+dim[1],corner[2]+dim[2])
+    if neariso:
+      outcorner = (corner[0]+dim[0],corner[1]+dim[1],corner[2]+dim[2]/self.datasetcfg.nearisoscaledown[resolution])
+    else:
+      outcorner = (corner[0]+dim[0],corner[1]+dim[1],corner[2]+dim[2])
 
     newoutcorner = (outcorner[0]-1)/(2**(ch.resolution-resolution))+1, (outcorner[1]-1)/(2**(ch.resolution-resolution))+1, outcorner[2]
     effdim = (newoutcorner[0]-effcorner[0],newoutcorner[1]-effcorner[1],newoutcorner[2]-effcorner[2])
@@ -475,7 +481,7 @@ class SpatialDB:
     # if cutout is below resolution, get a smaller cube and scaleup
     if ch.resolution > resolution:
       # find the effective dimensions of the cutout (where the data is)
-      effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout ( ch, corner, dim, resolution )
+      effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout (ch, corner, dim, resolution, neariso=neariso)
       effresolution = ch.resolution
 
     # if cutout is above resolution, get a large cube and scaledown
