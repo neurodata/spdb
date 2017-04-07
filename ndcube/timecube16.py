@@ -32,6 +32,12 @@ class TimeCube16(TimeCube):
     super(TimeCube16, self).zeros()
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint16)
 
+  def frombuffer(self, slice_data):
+    """Convery an array into Image"""
+    
+    from PIL import Image
+    return Image.frombuffer('I;16', (slice_data.shape), slice_data.flatten(), 'raw', 'I;16', 0, 1)
+
 # RBTODO images for 16 bit
 #  def xyImage ( self, window=None ):
 #    """Create xy slice"""

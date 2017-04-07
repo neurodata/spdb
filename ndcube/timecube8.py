@@ -68,3 +68,9 @@ class TimeCube8(TimeCube):
       outimage = Image.frombuffer ( 'L', (ydim,zdim), self.data[0,:,:,0].flatten(), 'raw', 'L', 0, 1 ) 
       #if the image scales to 0 pixels it don't work
       return outimage.resize ( [ydim, int(zdim*zscale)] )
+  
+  def frombuffer(self, slice_data):
+    """Convery an array into Image"""
+    
+    from PIL import Image
+    return Image.frombuffer('L', (slice_data.shape), slice_data.flatten(), 'raw', 'L', 0, 1)
