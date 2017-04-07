@@ -481,7 +481,7 @@ class SpatialDB:
     # if cutout is below resolution, get a smaller cube and scaleup
     if ch.resolution > resolution:
       # find the effective dimensions of the cutout (where the data is)
-      effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout (ch, corner, dim, resolution, neariso=neariso)
+      effcorner, effdim, (xpixeloffset,ypixeloffset) = self._zoominCutout (ch, corner, dim, resolution)
       effresolution = ch.resolution
 
     # if cutout is above resolution, get a large cube and scaledown
