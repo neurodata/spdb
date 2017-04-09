@@ -23,6 +23,7 @@ from kvio import KVIO
 from spatialdberror import SpatialDBError
 from ndlib.ndctypelib import *
 from spdb.ndmanager.readerlock import ReaderLock
+from spdb.ndmanager.writerlock import WriterLock
 from spdb.ndkvio.s3io import S3IO
 from spdb.ndkvindex.kvindex import KVIndex
 import logging
@@ -184,6 +185,7 @@ class RedisKVIO(KVIO):
       # for zidx, timestamp, row in zip([idx]*len(listoftimestamps), listoftimestamps, rows):
         # yield ( zidx, timestamp, row )
 
+  @WriterLock
   def putCube(self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False, direct=False):
     """Store a single cube into the database"""
     
@@ -204,7 +206,7 @@ class RedisKVIO(KVIO):
       logger.error("Error inserting cube into the database. {}".format(e))
       raise SpatialDBError("Error inserting cube into the database. {}".format(e))
 
-
+  @WriterLock
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False, direct=False):
     """Store multiple cubes into the database"""
 
@@ -214,7 +216,6 @@ class RedisKVIO(KVIO):
       self.kvindex.putCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
       return self.putCacheCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
 
-    
   
   def putCacheCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
     """Store multiple cubes in the cache"""
