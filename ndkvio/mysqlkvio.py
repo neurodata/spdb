@@ -80,7 +80,7 @@ class MySQLKVIO(KVIO):
       self.txncursor = None
   
 
-  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -116,7 +116,7 @@ class MySQLKVIO(KVIO):
       return row[0]
 
   
-  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
+  def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
     if self.txncursor is None:
@@ -164,7 +164,7 @@ class MySQLKVIO(KVIO):
         cursor.close()
    
   
-  def putCube ( self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False):
+  def putCube ( self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False, direct=False):
     """Store a cube from the annotation database"""
     
     # if in a TxN us the transaction cursor.  Otherwise create one.
