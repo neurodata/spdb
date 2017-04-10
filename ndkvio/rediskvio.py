@@ -192,8 +192,8 @@ class RedisKVIO(KVIO):
     if direct:
       self.s3io.putCube(ch, timestamp, zidx, resolution, cubestr, update=update, neariso=neariso)
     else:
-      self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso=neariso)
       self.putCacheCube(ch, timestamp, zidx, resolution, cubestr, update=update, neariso=neariso)
+      self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso=neariso)
 
   def putCacheCube(self, ch, timestamp, zidx, resolution, cube_str, update=False, neariso=False):
     """Store a single cube in the cache"""
@@ -213,8 +213,8 @@ class RedisKVIO(KVIO):
     if direct:
       return self.s3io.putCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
     else:
+      self.putCacheCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
       self.kvindex.putCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
-      return self.putCacheCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
 
   
   def putCacheCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False):
