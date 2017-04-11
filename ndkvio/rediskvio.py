@@ -165,12 +165,13 @@ class RedisKVIO(KVIO):
     try:
       ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
       super_listofidxs = self.generateSuperZindexes(ids_to_fetch, resolution)
-      super_cuboids = self.s3io.getCubes(ch, listoftimestamps, super_listofidxs, resolution, neariso=neariso)
-      if super_cuboids:
-        for super_zidx, time_index, super_cuboid in super_cuboids:
-          superlistofidxs, superlistoftimestamps, superlistofcubes = self.breakCubes(time_index, super_zidx, resolution, super_cuboid)
-          # call putCubes and update index in the table before returning data
-          self.putCacheCubes(ch, superlistoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
+      if super_listofidxs:
+        super_cuboids = self.s3io.getCubes(ch, listoftimestamps, super_listofidxs, resolution, neariso=neariso)
+        if super_cuboids:
+          for super_zidx, time_index, super_cuboid in super_cuboids:
+            superlistofidxs, superlistoftimestamps, superlistofcubes = self.breakCubes(time_index, super_zidx, resolution, super_cuboid)
+            # call putCubes and update index in the table before returning data
+            self.putCacheCubes(ch, superlistoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
       
       # fetch all cubes from redis
       rows = self.client.mget( self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso) )
