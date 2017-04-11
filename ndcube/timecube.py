@@ -70,5 +70,5 @@ class TimeCube(Cube):
     new_data = np.zeros( (self.data.shape[0], self.data.shape[1], self.data.shape[2]*(2**factor), self.data.shape[3]*(2**factor)), dtype=self.data.dtype)
     for time_index in range(self.data.shape[0]):
       for z_index in range(self.data.shape[1]):
-        new_data[time_index, z_index, :, :] = np.asarray(self.frombuffer(self.data[time_index, z_index, :, :]).resize([new_data.shape[2], new_data.shape[3]]))
+        new_data[time_index, z_index, :, :] = np.asarray(self.frombuffer(self.data[time_index, z_index, :, :]).resize([new_data.shape[3], new_data.shape[2]]))
     self.data = new_data

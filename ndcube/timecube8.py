@@ -73,4 +73,4 @@ class TimeCube8(TimeCube):
     """Convery an array into Image"""
     
     from PIL import Image
-    return Image.frombuffer('L', (slice_data.shape), slice_data.flatten(), 'raw', 'L', 0, 1)
+    return Image.frombuffer('L', (slice_data.shape[::-1]), slice_data.flatten(), 'raw', 'L', 0, 1)
