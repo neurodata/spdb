@@ -118,7 +118,6 @@ class RedisKVIO(KVIO):
     return key_list
     
 
-  @ReaderLock
   def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False, direct=False):
     """Retrieve a single cube from the database"""
     
@@ -128,6 +127,7 @@ class RedisKVIO(KVIO):
       return self.getCacheCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
 
 
+  @ReaderLock
   def getCacheCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
     """Retrieve a single cube from the cache"""
     
@@ -151,7 +151,6 @@ class RedisKVIO(KVIO):
     else:
       return None
   
-  @ReaderLock
   def getCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False, direct=False):
     """Retrieve multiple cubes from the database"""
     if direct:
@@ -160,11 +159,13 @@ class RedisKVIO(KVIO):
       return self.getCacheCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
   
 
+  @ReaderLock
   def getCacheCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the cache"""
     try:
       ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
       super_listofidxs = self.generateSuperZindexes(ids_to_fetch, resolution)
+      logger.info("Super indexes to fetch {}".format(super_listofidxs))
       if super_listofidxs:
         super_cuboids = self.s3io.getCubes(ch, listoftimestamps, super_listofidxs, resolution, neariso=neariso)
         if super_cuboids:

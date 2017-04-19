@@ -580,7 +580,7 @@ class SpatialDB:
       pass
     else:
       outcube.trim ( corner[0]%xcubedim,dim[0],corner[1]%ycubedim,dim[1],corner[2]%zcubedim,dim[2] )
-
+    
     return outcube
 
   # alternate to getVolume that returns a annocube
