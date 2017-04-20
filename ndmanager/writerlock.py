@@ -15,8 +15,8 @@
 import time
 from django.conf import settings
 import redis
-from readerwriterlock import ReaderWriterLock
-from spatialdberror import SpatialDBError
+from spdb.ndmanager.readerwriterlock import ReaderWriterLock
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
 

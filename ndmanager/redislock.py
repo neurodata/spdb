@@ -15,7 +15,7 @@
 import time
 from django.conf import settings
 import redis
-from spatialdberror import SpatialDBError
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
 

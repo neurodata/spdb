@@ -15,10 +15,10 @@
 from __future__ import division
 from django.conf import settings
 import redis
-from redispool import RedisPool
-from redislock import RedisLock
-from writerlock import WriterLock
-from spatialdberror import SpatialDBError
+from spdb.redispool import RedisPool
+from spdb.ndmanager.redislock import RedisLock
+from spdb.ndmanager.writerlock import WriterLock
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 
