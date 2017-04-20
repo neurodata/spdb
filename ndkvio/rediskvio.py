@@ -165,7 +165,7 @@ class RedisKVIO(KVIO):
     try:
       ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
       super_listofidxs = self.generateSuperZindexes(ids_to_fetch, resolution)
-      logger.info("Super indexes to fetch {}".format(super_listofidxs))
+      logger.warn("Super indexes to fetch {}".format(super_listofidxs))
       if super_listofidxs:
         super_cuboids = self.s3io.getCubes(ch, listoftimestamps, super_listofidxs, resolution, neariso=neariso)
         if super_cuboids:
