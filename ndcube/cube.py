@@ -70,6 +70,9 @@ class Cube(object):
   
   def trim ( self, xoffset, xsize, yoffset, ysize, zoffset, zsize ):
     """Trim off the excess data"""
+    xoffset = int(xoffset)
+    yoffset = int(yoffset)
+    zoffset = int(zoffset)
     self.data = self.data[zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize]
   
 
@@ -79,7 +82,10 @@ class Cube(object):
     if not compressed_data:
       self.zeros()
     else:
-      self.fromBlosc(compressed_data)
+      try:
+        self.fromBlosc(compressed_data)
+      except Exception as e:
+        self.fromNPZ(compressed_data)
 
   def serialize(self):
     """Serialize the cube data"""
@@ -91,6 +97,7 @@ class Cube(object):
     try:
       self.data = np.load ( cStringIO.StringIO ( zlib.decompress ( compressed_data[:] ) ) )
     except:
+      pass
       logger.error("Failed to decompress database cube. Data integrity concern.")
       raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")
 
@@ -125,6 +132,7 @@ class Cube(object):
     try:
       self.data = blosc.unpack_array(compressed_data[:])
     except:
+      pass
       logger.error("Failed to decompress database cube. Data integrity concern.")
       raise SpatialDBError("Failed to decompress database cube. Data integrity concern.")
 

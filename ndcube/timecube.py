@@ -43,6 +43,9 @@ class TimeCube(Cube):
   # @override(Cube)
   def trim(self, xoffset, xsize, yoffset, ysize, zoffset, zsize):
     """Trim off the excess data"""
+    xoffset = int(xoffset)
+    yoffset = int(yoffset)
+    zoffset = int(zoffset)
     self.data = self.data[:, zoffset:zoffset+zsize, yoffset:yoffset+ysize, xoffset:xoffset+xsize]
 
   def overwrite(self, timestamp, write_data):

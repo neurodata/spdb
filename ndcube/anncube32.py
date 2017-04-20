@@ -138,17 +138,13 @@ class AnnotateCube32(TimeCube):
   
   def zoomData ( self, factor ):
     """ Cube data zoomed in """
-    assert 0  # timestampe TODO
-
-    newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]*(2**factor), self.data.shape[2]*(2**factor)], dtype=np.uint32) 
-    zoomInData_ctype_OMP ( self.data, newdata, int(factor) )
+    newdata = np.zeros ( [self.data.shape[0], self.data.shape[1], self.data.shape[3]*(2**factor), self.data.shape[3]*(2**factor)], dtype=np.uint32) 
+    zoomInData_ctype_OMP ( self.data[0,:], newdata[0,:], int(factor) )
     self.data = newdata
 
   
   def downScale ( self, factor ):
     """ Cube data zoomed out """
-    assert 0 # timestamp TODO
-
-    newdata = np.zeros ( [self.data.shape[0], self.data.shape[1]/(2**factor), self.data.shape[2]/(2**factor)], dtype=np.uint32) 
-    zoomOutData_ctype ( self.data, newdata, int(factor) )
+    newdata = np.zeros ( [self.data.shape[0], self.data.shape[1], self.data.shape[2]/(2**factor), self.data.shape[3]/(2**factor)], dtype=np.uint32) 
+    zoomOutData_ctype ( self.data[0,:], newdata[0,:], int(factor) )
     self.data = newdata
