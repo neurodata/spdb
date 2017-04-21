@@ -1105,18 +1105,8 @@ class SpatialDB:
 
     offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
     
-<<<<<<< HEAD
     databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
     databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
-=======
-    if timerange == [0,0]:
-      databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-      databuffer[zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
-    else:
-      databuffer = np.zeros([timerange[1]-timerange[0]]+[znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-      databuffer[:, zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0]] = cuboiddata 
-
->>>>>>> master
 
     self.kvio.startTxn()
 
@@ -1137,33 +1127,9 @@ class SpatialDB:
               # update in the database
               self.putCube(ch, timestamp, zidx, resolution, cube)
 
-<<<<<<< HEAD
         # RB hack to commit when the file is too big for mysql log
         if xnumcubes*ynumcubes >= 100:
           self.kvio.commit()
-=======
-      else:
-        for z in range(znumcubes):
-          for y in range(ynumcubes):
-            for x in range(xnumcubes):
-              for timestamp in range(timerange[0], timerange[1], 1):
-                # print x, y, z, timestamp, timerange
-                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
-                if not blind:
-                  cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
-                  # overwrite the cube
-                  cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
-                else:
-                  cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
-                  cube.data = databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim]
-
-                zidx = XYZMorton([x+xstart,y+ystart,z+zstart])
-                cube = self.getCube(ch, zidx, resolution, timestamp, update=True)
-                # overwrite the cube
-                cube.overwrite(databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
-                # update in the database
-                self.putCube(ch, zidx, resolution, cube, timestamp)
->>>>>>> master
 
     except:
       self.kvio.rollback()
