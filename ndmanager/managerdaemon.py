@@ -20,7 +20,7 @@ import ND.settings
 os.environ['DJANGO_SETTINGS_MODULE'] = 'ND.settings'
 import django
 from django.conf import settings
-from redismanager import RedisManager
+from spdb.ndmanager.redismanager import RedisManager
 import logging
 logging.basicConfig(filename='/var/log/neurodata/ndmanager.log', 
                     filemode = 'w',

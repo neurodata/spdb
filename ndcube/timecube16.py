@@ -32,3 +32,16 @@ class TimeCube16(TimeCube):
     super(TimeCube16, self).zeros()
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint16)
 
+# RBTODO images for 16 bit
+#  def xyImage ( self, window=None ):
+#    """Create xy slice"""
+#
+#    if window=None:
+#      raise Exception("No window provided. Can't create image")
+#    if len(self.data.shape) == 3:
+#      zdim, ydim, xdim = self.data.shape
+#      return Image.frombuffer ( 'L', (xdim,ydim), self.data[0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
+#    else:
+#      zdim,ydim,xdim = self.data.shape[1:]
+#      return Image.frombuffer ( 'L', (xdim,ydim), self.data[0,0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
+#

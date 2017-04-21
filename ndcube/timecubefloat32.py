@@ -17,6 +17,8 @@ from PIL import Image
 
 from .timecube import TimeCube
 
+from ndlib.windowcutout import windowCutout
+
 import logging
 logger=logging.getLogger("neurodata")
 
@@ -38,7 +40,7 @@ class TimeCubeFloat32(TimeCube):
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.float32)
 
 
-  def xyImage(self):
+  def xyImage(self, window=None):
     """Create xy slice"""
 
     if len(self.data.shape) == 3:
@@ -46,14 +48,20 @@ class TimeCubeFloat32(TimeCube):
     else:
       zdim,ydim,xdim = self.data.shape[1:]
 
-    # translate the 0-1 map down to to 256 value
-    imgdata = np.uint8(self.data*256)
+    window = map(float,window)
 
-    # convert the data into a red heatmap
-    rgbdata = np.zeros ( [ydim,xdim,3], dtype=np.uint8 )
-    rgbdata[:,:,0] = imgdata[0,:,:]
+    if window==None:
+      # translate the 0-1 map down to to 256 value
+      imgdata = np.uint8(self.data*256)
+    else:
+      imgdata = np.uint8(windowCutout (self.data, window))
 
-    return Image.frombuffer('RGB', (xdim,ydim), rgbdata, 'raw', 'RGB', 0, 1)
+    if len(self.data.shape) == 3:
+      return Image.frombuffer ( 'L', (xdim,ydim), imgdata[0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
+    else:
+      return Image.frombuffer ( 'L', (xdim,ydim), imgdata[0,0,:,:].flatten(), 'raw', 'L', 0, 1 ) 
+
+
 
   def xzImage(self, zscale):
     """Create xz slice"""
