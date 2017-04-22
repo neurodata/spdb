@@ -48,7 +48,7 @@ class SpatialDB:
     self.proj = proj
     
     self.KVENGINE = self.proj.kvengine
-    self.MDENGINE = self.proj.mdengine
+    # self.MDENGINE = self.proj.mdengine
     
     self.kvio = KVIO.KVIOFactory(self)
 
@@ -475,7 +475,7 @@ class SpatialDB:
     return effcorner, effdim 
 
 
-  def cutout(self, ch, corner, dim, resolution, timerange, annoids=None, neariso=False, direct=False):
+  def cutout(self, ch, corner, dim, resolution, timerange, annoids=None, neariso=False, direct=False, aligned=False):
     """Extract a cube of arbitrary size. Need not be aligned."""
     
     # if cutout is below resolution, get a smaller cube and scaleup
@@ -532,6 +532,9 @@ class SpatialDB:
       else:
         cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=False, direct=direct)
       
+      if aligned:
+        for idx, timestamp, datastring in cuboids:
+          return datastring
       # use the batch generator interface
       for idx, timestamp, datastring in cuboids:
         
