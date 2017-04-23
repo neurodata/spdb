@@ -166,7 +166,6 @@ class RedisKVIO(KVIO):
     try:
       ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
       super_listofidxs = self.generateSuperZindexes(ids_to_fetch, resolution)
-      super_listofdixs = None
       if False:
       #if super_listofidxs:
         logger.warn("Super indexes to fetch {}".format(super_listofidxs))
@@ -178,7 +177,10 @@ class RedisKVIO(KVIO):
             self.putCacheCubes(ch, superlistoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
       
       # fetch all cubes from redis
+      import time
+      start = time.time()
       rows = self.client.mget( self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso) )
+      logger.warn("Data fetched {}".format(time.time()-start))
       for (timestamp, zidx), row in zip(itertools.product(listoftimestamps, listofidxs), rows):
         yield(zidx, timestamp, row)
     

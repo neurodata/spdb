@@ -536,6 +536,8 @@ class SpatialDB:
         for idx, timestamp, datastring in cuboids:
           return datastring
       # use the batch generator interface
+      import time
+      start_time = time.time()
       for idx, timestamp, datastring in cuboids:
         
         # add the query result cube to the bigger cube
@@ -555,7 +557,7 @@ class SpatialDB:
         
         # add it to the output cube
         outcube.addData( incube, timestamp, offset )
-    
+
     except Exception as e:
       self.kvio.rollback()
       raise SpatialDBError(e)
@@ -583,7 +585,8 @@ class SpatialDB:
       pass
     else:
       outcube.trim ( corner[0]%xcubedim,dim[0],corner[1]%ycubedim,dim[1],corner[2]%zcubedim,dim[2] )
-    
+     
+    logger.warn("Deserialize time {}".format(time.time()-start_time))    
     return outcube
 
   # alternate to getVolume that returns a annocube
