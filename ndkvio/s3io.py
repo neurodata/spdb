@@ -57,8 +57,8 @@ class S3IO:
     
     try:
       super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, timestamp, neariso=neariso)
-      super_cube = self.supercube_compatibility(super_cube)
-      return zidx, timestamp, super_cube
+      #super_cube = self.supercube_compatibility(super_cube)
+      return super_cube
     except botocore.exceptions.DataNotFoundError as e:
       logger.error("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
       raise SpatialDBError("Cannot find s3 object for zindex {}. {}".format(super_zidx, e))
@@ -73,7 +73,7 @@ class S3IO:
     for (time_index, super_zidx) in itertools.product(listoftimestamps, superlistofidxs):
       try:
         super_cube = self.cuboid_bucket.getObject(ch.channel_name, resolution, super_zidx, time_index, neariso=neariso)
-        super_cube = self.supercube_compatibility(super_cube)
+        #super_cube = self.supercube_compatibility(super_cube)
         yield ( super_zidx, time_index, super_cube)
         # for item in self.breakCubes(time_index, super_zidx, resolution, blosc.unpack_array(super_cube)):
           # yield(item)
