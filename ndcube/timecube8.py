@@ -32,7 +32,7 @@ class TimeCube8(TimeCube):
     super(TimeCube8, self).zeros()
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint8)
 
-  def xyImage ( self ):
+  def xyImage ( self, window=None ):
     """Create xy slice"""
     if len(self.data.shape) == 3:
       zdim, ydim, xdim = self.data.shape

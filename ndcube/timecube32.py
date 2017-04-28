@@ -14,7 +14,7 @@
 
 import numpy as np
 from .timecube import TimeCube
-from spatialdberror import SpatialDBError
+from PIL import Image
 import logging
 logger=logging.getLogger("neurodata")
 
@@ -35,4 +35,38 @@ class TimeCube32(TimeCube):
     self.data = np.zeros([self.time_range[1]-self.time_range[0]]+self.cubesize, np.uint32)
 
 
-  # RBTODO RGB xy/yz/xz slices.
+  def xyImage ( self, window=None ):
+    """Create the specified slice (index)"""
+
+    if len(self.data.shape) == 3:
+      return Image.fromarray( self.data[0,:,:], "RGBA")
+    else:
+      return Image.fromarray( self.data[0,0,:,:], "RGBA")
+
+
+  def xzImage ( self, zscale, window=None ):
+    """Create the specified slice (index)"""
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      outimage = Image.fromarray( self.data[:,0,:], "RGBA")
+
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+      outimage = Image.fromarray( self.data[0,:,0,:], "RGBA")
+
+    return outimage.resize ( [xdim, int(zdim*zscale)] )
+
+  def yzImage ( self, zscale ):
+    """Create the specified slice (index)"""
+
+    if len(self.data.shape) == 3:
+      zdim, ydim, xdim = self.data.shape
+      outimage = Image.fromarray( self.data[:,:,0], "RGBA")
+
+    else:
+      zdim,ydim,xdim = self.data.shape[1:]
+      outimage = Image.fromarray( self.data[0,:,:,0], "RGBA")
+
+    return outimage.resize ( [ydim, int(zdim*zscale)] )
+

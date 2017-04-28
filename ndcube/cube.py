@@ -19,7 +19,6 @@ import blosc
 from abc import abstractmethod
 from ndlib.ndctypelib import  overwriteDense_ctype
 from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, DTYPE_uint8, DTYPE_uint16, DTYPE_uint32, DTYPE_uint64, DTYPE_float32, DTYPE_int8, DTYPE_int16, DTYPE_int32 
-from spdb.spatialdberror import SpatialDBError
 import logging
 logger = logging.getLogger("neurodata")
 
@@ -138,7 +137,7 @@ class Cube(object):
     return NotImplemented
 
   @abstractmethod
-  def xyImage(self):
+  def xyImage(self, window=None):
     """Create a xy slice"""
     return NotImplemented
 

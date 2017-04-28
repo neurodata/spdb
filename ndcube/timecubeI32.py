@@ -14,7 +14,6 @@
 
 import numpy as np
 from .timecube import TimeCube
-from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 

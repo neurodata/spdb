@@ -14,13 +14,9 @@
 
 import MySQLdb
 from .kvio import KVIO
-from ndtype import OLDCHANNEL
-from spatialdberror import SpatialDBError
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
-
-
-#RBTODO fix transaction support for putcubes
 
 
 """Helpers function to do cube I/O in across multiple DBs.
@@ -37,6 +33,7 @@ class MySQLKVIO(KVIO):
     # Connection info 
     try:
       self.conn = MySQLdb.connect (host = self.db.proj.host, user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname)
+      # self.conn = MySQLdb.connect (host = '127.0.0.1', user = self.db.proj.kvengine_user, passwd = self.db.proj.kvengine_password, db = self.db.proj.dbname, port=8007)
 
     except MySQLdb.Error as e:
       self.conn = None
@@ -102,7 +99,7 @@ class MySQLKVIO(KVIO):
     else: 
       return row[0]
 
-  def getCube(self, ch, timestamp, zidx, resolution, update=False):
+  def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
     """Retrieve a cube from the database by token, resolution, and zidx"""
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
@@ -111,11 +108,11 @@ class MySQLKVIO(KVIO):
     else:
       cursor = self.txncursor
    
-    if ch.channel_type == OLDCHANNEL:
-      channel_id = self.getChannelId(ch)
-      sql = "SELECT cube FROM {} WHERE (channel,zindex) = ({},{})".format(ch.getTable(resolution), channel_id, zidx)
-    else:
+    if not neariso:
       sql = "SELECT cube FROM {} WHERE (zindex,timestamp) = ({},{})".format(ch.getTable(resolution), zidx, timestamp)
+    else:
+      sql = "SELECT cube FROM {} WHERE (zindex,timestamp) = ({},{})".format(ch.getNearIsoTable(resolution), zidx, timestamp)
+
     if update:
       sql += " FOR UPDATE"
 
@@ -139,23 +136,19 @@ class MySQLKVIO(KVIO):
 
   
   def getCubes(self, ch, listofidxs, resolution, neariso=False):
-  
+
     # if in a TxN us the transaction cursor.  Otherwise create one.
     if self.txncursor is None:
       cursor = self.conn.cursor()
     else:
       cursor = self.txncursor
    
-    if ch.channel_type == OLDCHANNEL:
-      channel_id = self.getChannelId(ch)
-      sql = "SELECT zindex,cube FROM {} where channel={} and zindex in (%s)".format( ch.getTable(resolution), channel_id)
+    if neariso:
+      sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getNearIsoTable(resolution) ) 
     else:
-      if neariso:
-        sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getNearIsoTable(resolution) ) 
-      else:
-        sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getTable(resolution) ) 
+      sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getTable(resolution) ) 
 
-    # creats a %s for each list element
+    # create a %s for each list element
     in_p=', '.join(map(lambda x: '%s', listofidxs))
     # replace the single %s with the in_p string
     sql = sql % in_p
@@ -185,7 +178,7 @@ class MySQLKVIO(KVIO):
         cursor.close()
    
   
-  def getTimeCubes(self, ch, idx, listoftimestamps, resolution):
+  def getTimeCubes(self, ch, idx, listoftimestamps, resolution, neariso=False):
 
     # if in a TxN us the transaction cursor.  Otherwise create one.
     if self.txncursor is None:
@@ -193,7 +186,10 @@ class MySQLKVIO(KVIO):
     else:
       cursor = self.txncursor
    
-    sql = "SELECT zindex,timestamp,cube FROM {} WHERE zindex={} and timestamp in (%s)".format(ch.getTable(resolution), idx)
+    if not neariso:
+      sql = "SELECT zindex,timestamp,cube FROM {} WHERE zindex={} and timestamp in (%s)".format(ch.getTable(resolution), idx)
+    else:
+      sql = "SELECT zindex,timestamp,cube FROM {} WHERE zindex={} and timestamp in (%s)".format(ch.getNearIsoTable(resolution), idx)
 
     # creats a %s for each list element
     in_p=', '.join(map(lambda x: '%s', listoftimestamps))
@@ -223,35 +219,9 @@ class MySQLKVIO(KVIO):
       if self.txncursor is None:
         cursor.close()
    
-
-#
-#  No timestamp support.  Run put cube in txn mode.
-#
-#  def putCubes ( self, ch, listofidxs, resolution, listofcubes, update=False):
-#    """Store multiple cubes into the database"""
-#
-#    cursor = self.conn.cursor()
-#    
-#    sql = "REPLACE INTO {} (zindex,cube) VALUES (%s,%s)".format(ch.getTable(resolution))
-#
-#    try:
-#      cursor.executemany(sql, zip(listofidxs, listofcubes))
-#    
-#    except MySQLdb.Error as e:
-#      logger.error("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-#      raise SpatialDBError("Error inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))
-#    
-#    finally:
-#      # close the local cursor if not in a transaction and commit right away
-#      cursor.close()
-#    
-#    # commit if not in a txn
-#    self.conn.commit()
-  
-
-  def putCube ( self, ch, timestamp, zidx, resolution, cubestr, update=False):
+  def putCube ( self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False):
     """Store a cube from the annotation database"""
-    
+
     # if in a TxN us the transaction cursor.  Otherwise create one.
     if self.txncursor is None:
       cursor = self.conn.cursor()
@@ -259,20 +229,26 @@ class MySQLKVIO(KVIO):
       cursor = self.txncursor
 
     try:
+
       # we created a cube from zeros
       if not update:
 
-        sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
+        if not neariso:
+          sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getTable(resolution))
+        else:
+          sql = "INSERT INTO {} (zindex, timestamp, cube) VALUES (%s, %s, %s)".format(ch.getNearIsoTable(resolution))
 
         # this uses a cursor defined in the caller (locking context): not beautiful, but needed for locking
         cursor.execute ( sql, (zidx, timestamp, cubestr) ) 
       
       else:
 
-        sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
-      
+        if not neariso:
+          sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getTable(resolution), zidx, timestamp)
+        else:
+          sql = "UPDATE {} SET cube=(%s) WHERE (zindex,timestamp)=({},{})".format(ch.getNearIsoTable(resolution), zidx, timestamp)
+
         cursor.execute( sql, (cubestr,) )
-      
 
     except MySQLdb.Error as e:
       logger.error("Error updating/inserting cube: {}: {}. sql={}".format(e.args[0], e.args[1], sql))

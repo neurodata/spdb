@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from PIL import Image
-from ndctypelib import *
+from ndlib.ndctypelib import *
 from .timecube import TimeCube
-from spatialdberror import SpatialDBError 
 import logging
 logger=logging.getLogger("neurodata")
 
@@ -67,7 +66,7 @@ class AnnotateCube32(TimeCube):
     return exceptions, zeroed
 
 
-  def xyImage ( self ):
+  def xyImage ( self, window=None ):
     """Create the specified slice (index)"""
 
     if len(self.data.shape) == 3:
