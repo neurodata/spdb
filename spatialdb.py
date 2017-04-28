@@ -23,13 +23,12 @@ import blosc
 from contextlib import closing
 from operator import add, sub, floordiv, mod, mul
 from spdb.ndcube.cube import Cube
-from .ndmanager.readerlock import ReaderLock
 import spdb.s3io as s3io
 from spdb.ndkvio.kvio import KVIO
 from . import annindex
 from spdb.ndkvindex.kvindex import KVIndex
 from ndlib.ndctypelib import *
-from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
+from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, UNDER_PROPAGATION, NOT_PROPAGATED
 from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -96,7 +95,6 @@ class SpatialDB:
 
     return cube
 
-  @ReaderLock
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
 
