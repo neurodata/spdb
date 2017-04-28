@@ -14,13 +14,9 @@
 
 import MySQLdb
 from .kvio import KVIO
-from ndtype import OLDCHANNEL
-from spatialdberror import SpatialDBError
+from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
-
-
-#RBTODO fix transaction support for putcubes
 
 
 """Helpers function to do cube I/O in across multiple DBs.
@@ -112,14 +108,10 @@ class MySQLKVIO(KVIO):
     else:
       cursor = self.txncursor
    
-    if ch.channel_type == OLDCHANNEL:
-      channel_id = self.getChannelId(ch)
-      sql = "SELECT cube FROM {} WHERE (channel,zindex) = ({},{})".format(ch.getTable(resolution), channel_id, zidx)
+    if not neariso:
+      sql = "SELECT cube FROM {} WHERE (zindex,timestamp) = ({},{})".format(ch.getTable(resolution), zidx, timestamp)
     else:
-      if not neariso:
-        sql = "SELECT cube FROM {} WHERE (zindex,timestamp) = ({},{})".format(ch.getTable(resolution), zidx, timestamp)
-      else:
-        sql = "SELECT cube FROM {} WHERE (zindex,timestamp) = ({},{})".format(ch.getNearIsoTable(resolution), zidx, timestamp)
+      sql = "SELECT cube FROM {} WHERE (zindex,timestamp) = ({},{})".format(ch.getNearIsoTable(resolution), zidx, timestamp)
 
     if update:
       sql += " FOR UPDATE"
@@ -151,16 +143,12 @@ class MySQLKVIO(KVIO):
     else:
       cursor = self.txncursor
    
-    if ch.channel_type == OLDCHANNEL:
-      channel_id = self.getChannelId(ch)
-      sql = "SELECT zindex,cube FROM {} where channel={} and zindex in (%s)".format( ch.getTable(resolution), channel_id)
+    if neariso:
+      sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getNearIsoTable(resolution) ) 
     else:
-      if neariso:
-        sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getNearIsoTable(resolution) ) 
-      else:
-        sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getTable(resolution) ) 
+      sql = "SELECT zindex, cube FROM {} WHERE zindex in (%s)".format( ch.getTable(resolution) ) 
 
-    # creats a %s for each list element
+    # create a %s for each list element
     in_p=', '.join(map(lambda x: '%s', listofidxs))
     # replace the single %s with the in_p string
     sql = sql % in_p

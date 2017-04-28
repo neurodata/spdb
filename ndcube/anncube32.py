@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from PIL import Image
-from ndctypelib import *
+from ndlib.ndctypelib import *
 from .timecube import TimeCube
-from spatialdberror import SpatialDBError 
 import logging
 logger=logging.getLogger("neurodata")
 

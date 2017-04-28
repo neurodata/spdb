@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-#RBTODO make all get/put Index based on timerange
-
 import numpy as np
 from io import BytesIO
 import blosc
@@ -29,12 +27,6 @@ class AnnotateIndex:
 
     self.proj = proj
     self.kvio = kvio
-
-    # KLTODO legacy inteface
-    if False and self.proj.kvengine == 'MySQL':
-      self.NPZ = True
-    else: 
-      self.NPZ = False
    
 
   def getIndex ( self, ch, entityid, timestamp, resolution, update=False):
@@ -42,11 +34,7 @@ class AnnotateIndex:
     
     idxstr = self.kvio.getIndex(ch, entityid, timestamp, resolution, update)
     if idxstr:
-      if self.NPZ:
-        fobj = BytesIO( idxstr )
-        return np.load ( fobj )
-      else:
-        return blosc.unpack_array(idxstr)
+      return blosc.unpack_array(idxstr)
     else:
       return []
        
@@ -54,12 +42,7 @@ class AnnotateIndex:
   def putIndex ( self, ch, entityid, timestamp, resolution, index, update=False ):
     """Write the index for the annotation with id"""
 
-    if self.NPZ:
-      fileobj = BytesIO()
-      np.save ( fileobj, index )
-      self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue(), update )
-    else:
-      self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(index), update)
+    self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(index), update)
 
 
   def updateIndexDense(self, ch, index, timestamp, resolution ):
@@ -102,12 +85,7 @@ class AnnotateIndex:
 
     if curindex == []:
         
-      if self.NPZ:
-        fileobj = BytesIO()
-        np.save ( fileobj, index )
-        self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue())
-      else:
-        self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(index))
+      self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(index))
 
     else:
         
@@ -115,9 +93,4 @@ class AnnotateIndex:
       newIndex = np.union1d(curindex, index)
 
       # Update the index in the database
-      if self.NPZ:
-        fileobj = BytesIO()
-        np.save ( fileobj, newIndex )
-        self.kvio.putIndex(ch, entityid, timestamp, resolution, fileobj.getvalue(), True )
-      else:
-        self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(newIndex), True )
+      self.kvio.putIndex(ch, entityid, timestamp, resolution, blosc.pack_array(newIndex), True )

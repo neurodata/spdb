@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABCMeta, abstractmethod
-from ndlib.ndtype import MYSQL, RIAK, CASSANDRA, DYNAMODB, REDIS
+from ndlib.ndtype import MYSQL 
 
 
 class KVIO(object):
@@ -64,26 +64,8 @@ class KVIO(object):
   @staticmethod
   def getIOEngine(db):
     
-    # KLTODO legacy npz intergace
-    if False and db.KVENGINE == MYSQL:
+    if db.KVENGINE == MYSQL:
       from .mysqlkvio import MySQLKVIO
-      db.NPZ = True
       return MySQLKVIO(db)
-    elif db.KVENGINE == MYSQL:
-      from .mysqlkvio import MySQLKVIO
-      db.NPZ = False
-      return MySQLKVIO(db)
-    elif db.KVENGINE == CASSANDRA:
-      from .casskvio import CassandraKVIO
-      db.NPZ = False
-      return CassandraKVIO(db)
-    elif db.KVENGINE == RIAK:
-      from .riakkvio import RiakKVIO
-      db.NPZ = False
-      return RiakKVIO(db)
-    elif db.KVENGINE == REDIS:
-      from .rediskvio import RedisKVIO
-      db.NPZ = False
-      return RedisKVIO(db)
     else:
       return KVIO(db)

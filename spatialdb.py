@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#RBTODO make everything work on zoomout -- just cutout and bounding box now
-
 import numpy as np
 from io import BytesIO
 import zlib
@@ -23,12 +21,10 @@ import blosc
 from contextlib import closing
 from operator import add, sub, floordiv, mod, mul
 from spdb.ndcube.cube import Cube
-import spdb.s3io as s3io
 from spdb.ndkvio.kvio import KVIO
 from . import annindex
-from spdb.ndkvindex.kvindex import KVIndex
 from ndlib.ndctypelib import *
-from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, CASSANDRA, RIAK, DYNAMODB, REDIS, S3_TRUE, S3_FALSE, UNDER_PROPAGATION, NOT_PROPAGATED
+from ndlib.ndtype import ANNOTATION_CHANNELS, TIMESERIES_CHANNELS, EXCEPTION_TRUE, PROPAGATED, MYSQL, UNDER_PROPAGATION, NOT_PROPAGATED
 from spdb.spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
@@ -49,37 +45,17 @@ class SpatialDB:
     self.datasetcfg = proj.datasetcfg 
     self.proj = proj
     
-# RBMYSQL
-#    # Set the S3 backend for the data
-#    try:
-#      self.s3io = s3io.S3IO(self)
-#    except:
-#      print("S3 not configured")
-
-    # Are there exceptions?
-    #self.EXCEPT_FLAG = self.proj.getExceptions()
     self.KVENGINE = self.proj.kvengine
-    self.NPZ = False
     
     self.kvio = KVIO.getIOEngine(self)
 
-# RBMYSQL
-#    try:
-#      self.kvindex = KVIndex.getIndexEngine(self)
-#    except:
-#      print("KVIndex failed to load")
-
-    # else:
-      # raise SpatialDBError ("Unknown key/value store. Engine = {}".format(self.proj.getKVEngine()))
-
     self.annoIdx = annindex.AnnotateIndex ( self.kvio, self.proj )
+
 
   def close ( self ):
     """Close the connection"""
 
     self.kvio.close()
-# RBMYSQL
-#    self.kvindex.close()
 
 
   def getCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
@@ -87,7 +63,6 @@ class SpatialDB:
 
     # get the size of the image and cube
     cubedim = self.datasetcfg.cubedim[resolution]
-    # KL TODO add indexing here
     cube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype, [0,1])
   
     # get the block from the database
@@ -96,65 +71,26 @@ class SpatialDB:
     if not cube_str:
       cube.zeros()
     else:
-      # handle the cube format here and decompress the cube
-      if self.NPZ:
-        assert(0)
-        cube.fromNPZ(cube_str)
-      else:
-        cube.fromBlosc(cube_str)
+      cube.fromBlosc(cube_str)
 
     return cube
 
-#  @ReaderLock
   def getCubes(self, ch, listofidxs, resolution, listoftimestamps=None, neariso=False):
     """Return a list of cubes"""
 
-# RBMYSQL
-#    if listoftimestamps is None:
-#      if self.proj.s3backend == S3_TRUE:
-#        ids_to_fetch = self.kvindex.getCubeIndex(ch, resolution, listofidxs)
-#        # checking if the index exists inside the database or not
-#        if ids_to_fetch:
-#          # logger.debug("Cache Miss: {}".format(listofidxs))
-#          super_cuboids = self.s3io.getCubes(ch, ids_to_fetch, resolution)
-#          
-#          # iterating over super_cuboids
-#          for superlistofidxs, superlistofcubes in super_cuboids:
-            # call putCubes and update index in the table before returning data
-#            self.putCubes(ch, superlistofidxs, resolution, superlistofcubes, update=True)
-#            
-#      return self.kvio.getCubes(ch, listofidxs, resolution, neariso)
-#    else:
     return self.kvio.getTimeCubes(ch, listofidxs, listoftimestamps, resolution, neariso=neariso)
 
 
   def putCubes(self, ch, listofidxs, resolution, listofcubes, update=False):
     """Insert a list of cubes"""
-    
-# RBMYSQL
-#    if self.proj.s3backend == S3_TRUE:
-#      self.kvindex.putCubeIndex(ch, resolution, listofidxs)
+
     return self.kvio.putCubes(ch, listofidxs, resolution, listofcubes, update)
 
   
   def putCube(self, ch, timestamp, zidx, resolution, cube, update=False, neariso=False):
     """ Store a cube in the annotation database """
 
-    # handle the cube format here
-#    if self.proj.s3backend == S3_TRUE:
-#      # KLTODO -- broken by tiemstamp changes
-#      if ch.channel_type in TIMESERIES_CHANNELS and timestamp is not None:
-#        self.kvindex.putCubeIndex(ch, resolution, [zidx], [timestamp])
-#      elif ch.channel_type not in TIMESERIES_CHANNELS and timestamp is None:
-#        self.kvindex.putCubeIndex(ch, resolution, [zidx])
-#      else:
-#        logger.error("Timestamp is not None for Image Channels.")
-#        raise SpatialDBError("Timestamp is not None for Image Channels.")
-
-    if self.NPZ:
-      self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toNPZ(), not cube.fromZeros())
-    else:
-      self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toBlosc(), not cube.fromZeros(), neariso=neariso )
+    self.kvio.putCube(ch, timestamp, zidx, resolution, cube.toBlosc(), not cube.fromZeros(), neariso=neariso )
   
 
   def getExceptions(self, ch, zidx, timestamp, resolution, annoid):
@@ -162,10 +98,7 @@ class SpatialDB:
 
     excstr = self.kvio.getExceptions(ch, zidx, timestamp, resolution, annoid)
     if excstr:
-      if self.NPZ:
-        return np.load(BytesIO(zlib.decompress(excstr)))
-      else:
-        return blosc.unpack_array(excstr)
+      return blosc.unpack_array(excstr)
     else:
       return []
 
@@ -193,14 +126,7 @@ class SpatialDB:
     """Package the object and transact with kvio"""
     
     exceptions = np.array ( exceptions, dtype=np.uint32 )
-
-    if self.NPZ:
-      fileobj = BytesIO()
-      np.save ( fileobj, exceptions )
-      excstr = fileobj.getvalue()
-      self.kvio.putExceptions(ch, key, timestamp, resolution, exid, zlib.compress(excstr), update)
-    else:
-      self.kvio.putExceptions(ch, key, timestamp, resolution, exid, blosc.pack_array(exceptions), update)
+    self.kvio.putExceptions(ch, key, timestamp, resolution, exid, blosc.pack_array(exceptions), update)
 
 
   def removeExceptions(self, ch, key, timestamp, resolution, entityid, exceptions):
@@ -616,10 +542,7 @@ class SpatialDB:
           curxyz = MortonXYZ(int(idx))
           offset = [ curxyz[0]-lowxyz[0], curxyz[1]-lowxyz[1], curxyz[2]-lowxyz[2] ]
 
-          if self.NPZ:
-            incube.fromNPZ(datastring[:])
-          else:
-            incube.fromBlosc(datastring[:])
+          incube.fromBlosc(datastring[:])
 
           # apply exceptions if it's an annotation project
           if annoids!= None and ch.channel_type in ANNOTATION_CHANNELS:
@@ -1033,52 +956,6 @@ class SpatialDB:
     self.kvio.putCube(ch, timestamp, zidx, resolution, cuboiddata, update=True)
 
 
-#  def writeCuboids(self, ch, corner, resolution, cuboiddata, timerange=[0,0]):
-#    """Write an arbitary size data to the database"""
-#
-#    # dim is in xyz, data is in zyx order
-#    dim = cuboiddata.shape[::-1]
-#    
-#    # get the size of the image and cube
-#    cubedim = self.datasetcfg.cubedim [ resolution ]
-#    
-#    # round to the nearest larger cube in all dimensions
-#    start = [xstart, ystart, zstart] = map(floordiv, corner, cubedim)
-#
-#    znumcubes = (corner[2]+dim[2]+zcubedim-1)//zcubedim - zstart
-#    ynumcubes = (corner[1]+dim[1]+ycubedim-1)//ycubedim - ystart
-#    xnumcubes = (corner[0]+dim[0]+xcubedim-1)//xcubedim - xstart
-#
-#    offset = [xoffset, yoffset, zoffset] = map(mod, corner, cubedim)
-#    
-#    databuffer = np.zeros ([znumcubes*zcubedim, ynumcubes*ycubedim, xnumcubes*xcubedim], dtype=cuboiddata.dtype )
-#    databuffer [ zoffset:zoffset+dim[2], yoffset:yoffset+dim[1], xoffset:xoffset+dim[0] ] = cuboiddata 
-#
-#    incube = Cube.CubeFactory(cubedim, ch.channel_type, ch.channel_datatype)
-#    
-#    self.kvio.startTxn()
-#    
-#    listofidxs = []
-#    listofcubes = []
-#
-#    try:
-#      for z in range(znumcubes):
-#        for y in range(ynumcubes):
-#          for x in range(xnumcubes):
-#
-#            listofidxs.append(XYZMorton ([x+xstart,y+ystart,z+zstart]))
-#            incube.data = databuffer [ z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim ]
-#            listofcubes.append(incube.toBlosc())
-#
-#      self.putCubes(ch, listofidxs, resolution, listofcubes, update=False)
-#
-#    except:
-#      self.kvio.rollback()
-#      raise
-#
-#    self.kvio.commit()
-
-
   def writeCuboid(self, ch, corner, resolution, cuboiddata, timerange=[0,1]):
     """
     Write a 4D volume to the key-value store.
@@ -1126,7 +1003,6 @@ class SpatialDB:
 
               cube = self.getCube(ch, timestamp, zidx, resolution, update=True)
 
-              # KLTODO in test_probability.py overwrite does not work for float32.
               # overwrite the cube -- one timestamp in cube so write to time 0
               cube.overwrite(0, databuffer[timestamp-timerange[0], z*zcubedim:(z+1)*zcubedim, y*ycubedim:(y+1)*ycubedim, x*xcubedim:(x+1)*xcubedim])
 

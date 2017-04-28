@@ -15,7 +15,6 @@
 import numpy as np
 from .timecube import TimeCube
 from PIL import Image
-from spatialdberror import SpatialDBError
 import logging
 logger=logging.getLogger("neurodata")
 
