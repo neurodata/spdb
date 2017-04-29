@@ -553,9 +553,13 @@ class SpatialDB:
           # add it to the output cube
           outcube.addData( incube, timestamp, offset )
 
+    except StopIteration:
+      pass
     except:
       self.kvio.rollback()
       raise
+    finally:
+      del listofidxs
 
     self.kvio.commit()
 
