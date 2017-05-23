@@ -532,12 +532,11 @@ class SpatialDB:
       else:
         cuboids = self.getCubes(ch, listoftimestamps, listofidxs, effresolution, neariso=False, direct=direct)
       
-      if aligned:
-        for idx, timestamp, datastring in cuboids:
-          return datastring
+      # if aligned:
+        # for idx, timestamp, datastring in cuboids:
+          # return datastring
+      
       # use the batch generator interface
-      import time
-      start_time = time.time()
       for idx, timestamp, datastring in cuboids:
         
         # add the query result cube to the bigger cube
@@ -586,7 +585,6 @@ class SpatialDB:
     else:
       outcube.trim ( corner[0]%xcubedim,dim[0],corner[1]%ycubedim,dim[1],corner[2]%zcubedim,dim[2] )
      
-    logger.warn("Deserialize time {}".format(time.time()-start_time))    
     return outcube
 
   # alternate to getVolume that returns a annocube

@@ -128,7 +128,7 @@ class RedisKVIO(KVIO):
       return self.getCacheCube(ch, timestamp, zidx, resolution, update=update, neariso=neariso)
 
 
-  #@ReaderLock
+  @ReaderLock
   def getCacheCube(self, ch, timestamp, zidx, resolution, update=False, neariso=False):
     """Retrieve a single cube from the cache"""
     
@@ -136,10 +136,10 @@ class RedisKVIO(KVIO):
     ids_to_fetch = self.kvindex.getCubeIndex(ch, [timestamp], [zidx], resolution, neariso=neariso)
     listofsuperidxs = self.generateSuperZindexes(ids_to_fetch, resolution)
     # fetch the supercuboid from s3
-    #super_cuboid = self.s3io.getCube(ch, timestamp, listofsuperidxs[0], resolution, update=update, neariso=neariso)
-    #if super_cuboid:
-      #for listofidxs, listoftimestamps, listofcubes in self.breakCubes(timestamp, zidx, resolution, super_cuboid):
-        #self.putCacheCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
+    super_cuboid = self.s3io.getCube(ch, timestamp, listofsuperidxs[0], resolution, update=update, neariso=neariso)
+    if super_cuboid:
+      for listofidxs, listoftimestamps, listofcubes in self.breakCubes(timestamp, zidx, resolution, super_cuboid):
+        self.putCacheCubes(ch, listoftimestamps, listofidxs, resolution, listofcubes, update=update, neariso=neariso)
 
     try:
       rows = self.client.mget( self.generateKeys(ch, [timestamp], [zidx], resolution, neariso) )  
@@ -160,14 +160,13 @@ class RedisKVIO(KVIO):
       return self.getCacheCubes(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
   
 
-  #@ReaderLock
+  @ReaderLock
   def getCacheCubes(self, ch, listoftimestamps, listofidxs, resolution, neariso=False):
     """Retrieve multiple cubes from the cache"""
     try:
       ids_to_fetch = self.kvindex.getCubeIndex(ch, listoftimestamps, listofidxs, resolution, neariso=neariso)
       super_listofidxs = self.generateSuperZindexes(ids_to_fetch, resolution)
-      if False:
-      #if super_listofidxs:
+      if super_listofidxs:
         logger.warn("Super indexes to fetch {}".format(super_listofidxs))
         super_cuboids = self.s3io.getCubes(ch, listoftimestamps, super_listofidxs, resolution, neariso=neariso)
         if super_cuboids:
@@ -177,10 +176,7 @@ class RedisKVIO(KVIO):
             self.putCacheCubes(ch, superlistoftimestamps, superlistofidxs, resolution, superlistofcubes, update=True, neariso=neariso)
       
       # fetch all cubes from redis
-      import time
-      start = time.time()
       rows = self.client.mget( self.generateKeys(ch, listoftimestamps, listofidxs, resolution, neariso) )
-      logger.warn("Data fetched {}".format(time.time()-start))
       for (timestamp, zidx), row in zip(itertools.product(listoftimestamps, listofidxs), rows):
         yield(zidx, timestamp, row)
     
@@ -192,7 +188,7 @@ class RedisKVIO(KVIO):
       # for zidx, timestamp, row in zip([idx]*len(listoftimestamps), listoftimestamps, rows):
         # yield ( zidx, timestamp, row )
 
-  #@WriterLock
+  @WriterLock
   def putCube(self, ch, timestamp, zidx, resolution, cubestr, update=False, neariso=False, direct=False):
     """Store a single cube into the database"""
     
@@ -215,7 +211,7 @@ class RedisKVIO(KVIO):
     # insert index after inserting the cuboids
     self.kvindex.putCubeIndex(ch, [zidx], [timestamp], resolution, neariso=neariso)
 
-  #@WriterLock
+  @WriterLock
   def putCubes(self, ch, listoftimestamps, listofidxs, resolution, listofcubes, update=False, neariso=False, direct=False):
     """Store multiple cubes into the database"""
 
